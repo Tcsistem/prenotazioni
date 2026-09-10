@@ -1,0 +1,171 @@
+╔════════════════════════════════════════════════════════════════════════╗
+║          Centro Analisi Anxur - Voicebot Demo                          ║
+║                  Quick Start Guide (5 minuti)                          ║
+╚════════════════════════════════════════════════════════════════════════╝
+
+📦 HO CREATO TUTTO IL CODICE NECESSARIO!
+
+Questa cartella contiene:
+✓ Backend Python Flask pronto
+✓ Frontend Dashboard pronto
+✓ Database schema SQL
+✓ Documentazione completa
+✓ Guida step-by-step per deploy
+
+═══════════════════════════════════════════════════════════════════════════
+
+🚀 PROSSIMI STEP (in ordine):
+
+1️⃣  LEGGI docs/SETUP.md
+    └─ Guida step-by-step per:
+       • Creare GitHub repo
+       • Setup database PostgreSQL
+       • Setup Google APIs
+       • Deploy su Heroku
+       • Deploy frontend su GitHub Pages
+
+2️⃣  LEGGI docs/WILDIX.md
+    └─ Come integrare il voicebot Wildix con il backend
+
+3️⃣  LEGGI docs/API.md
+    └─ Documentazione tecnica degli endpoint API
+
+═══════════════════════════════════════════════════════════════════════════
+
+📁 STRUTTURA PROGETTO:
+
+backend/
+  ├─ app.py                 ← API Flask (questo è il "cervello")
+  ├─ schema.sql             ← Struttura database
+  ├─ requirements.txt        ← Librerie Python
+  ├─ Procfile               ← Configurazione Heroku
+  └─ .env.example           ← Template configurazione
+
+frontend/
+  ├─ index.html             ← Dashboard (cosa vedono le operatrici)
+  ├─ style.css              ← Styling
+  └─ script.js              ← Logica JavaScript
+
+docs/
+  ├─ SETUP.md               ← ⭐ LEGGI QUESTO PRIMO
+  ├─ WILDIX.md              ← Come configurare Wildix
+  ├─ API.md                 ← Documentazione API
+  └─ README.md              ← Overview progetto
+
+═══════════════════════════════════════════════════════════════════════════
+
+⚡ COSA FA OGNI COMPONENTE:
+
+Backend Flask (app.py)
+  → Riceve dati dal voicebot Wildix
+  → Salva i dati nel database PostgreSQL
+  → Integra con Google Sheets (callback list)
+  → Fornisce API REST al frontend
+
+Frontend Dashboard (index.html + script.js)
+  → Mostra lista callback in sospeso
+  → Bottone "Completa" per segnalinformazione che hai richiamato il cliente
+  → Mostra prenotazioni odierne
+  → Integra Google Calendar
+
+Database (PostgreSQL)
+  → Salva callback richieste
+  → Salva prenotazioni
+  → Salva info operatrici
+
+Google Sheets
+  → Lista callback (gli operatori vedono qui)
+
+Google Calendar
+  → Slot disponibili per le prenotazioni
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎯 FLUSSO PRATICO:
+
+1. Cliente chiama il numero del Centro Anxur
+2. Wildix PBX risponde con voicebot AI
+3. Voicebot chiede: "Desideri prenotare?"
+4. Cliente racconta i dati (nome, tipo analisi, ecc.)
+5. Voicebot invia HTTP POST al backend (con i dati)
+6. Backend salva in database + Google Sheets
+7. Dashboard mostra il callback nell'app
+8. Operatrice vede nuovo callback, chiama il cliente
+9. Quando risponde il cliente, operatrice segna "Completato"
+10. Riga viene cancellata da Google Sheets
+
+═══════════════════════════════════════════════════════════════════════════
+
+💡 IMPORTANTE:
+
+❌ NON devi programmare nulla!
+✅ Devi solo:
+   • Seguire i step in SETUP.md (copia-incolla comandi)
+   • Creare account Heroku e Google Cloud (gratis)
+   • Configurare il voicebot Wildix (vedi WILDIX.md)
+
+═══════════════════════════════════════════════════════════════════════════
+
+📞 PRIMO COMANDO PER INIZIARE:
+
+$ cat docs/SETUP.md
+
+Leggi SETUP.md da cima a fondo, segui ogni step.
+Quando hai domande → contattami!
+
+═══════════════════════════════════════════════════════════════════════════
+
+⏱️  TIMELINE REALISTICO:
+
+Setup (1 ora):
+  • Crea GitHub repo
+  • Setup Google APIs
+  • Setup Heroku
+  • Deploy backend
+  • Deploy frontend
+
+Testing (30 min):
+  • Testa API con il tasto "Test" nel dashboard
+  • Verifica Google Sheets
+  • Leggi logs Heroku
+
+Wildix Integration (1 ora):
+  • Crea IVR voicebot
+  • Configura webhook
+  • Testa con vera chiamata
+
+TOTALE: ~2.5 ore per una demo funzionante!
+
+═══════════════════════════════════════════════════════════════════════════
+
+❓ DOMANDE COMUNI:
+
+Q: Posso testare senza Wildix?
+A: SÌ! Usa il bottone "Test" nel dashboard per simulare callback
+
+Q: Dove metto i dati sensibili (password, credenziali)?
+A: NEL FILE .env (vedi .env.example)
+   I dati NEVER vanno nel codice o su GitHub
+
+Q: Come faccio se ho errore "Cannot connect"?
+A: Leggi docs/SETUP.md sezione Troubleshooting
+
+Q: Heroku è gratis?
+A: SÌ per demo (con limitazioni). Per produzione ~$7/mese
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎉 OK, SEI PRONTO!
+
+Apri terminal:
+$ cd prenotazioni
+$ cat docs/SETUP.md
+
+E inizia!
+
+═══════════════════════════════════════════════════════════════════════════
+
+Creato da: Claude (AI Assistant)
+Data: Gennaio 2024
+Versione: 1.0.0-demo
+Status: ✅ Pronto per testing

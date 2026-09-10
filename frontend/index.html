@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centro Anxur - Dashboard Operatrici</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📞 Centro Analisi Anxur - Dashboard Operatrici</h1>
+            <div class="status">
+                <span id="status-badge" class="badge badge-online">● Online</span>
+                <span id="time-display" class="time"></span>
+            </div>
+        </header>
+
+        <main>
+            <!-- SEZIONE: CALLBACK IN SOSPESO -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>📋 Callback in Sospeso</h2>
+                    <button id="refresh-btn" class="btn btn-secondary">🔄 Aggiorna</button>
+                </div>
+
+                <div id="callback-list" class="callback-list">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <!-- SEZIONE: PRENOTAZIONI ODIERNE -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>✅ Prenotazioni Odierne</h2>
+                    <button id="refresh-prenotazioni-btn" class="btn btn-secondary">🔄 Aggiorna</button>
+                </div>
+
+                <div id="prenotazioni-list" class="prenotazioni-list">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <!-- SEZIONE: GOOGLE CALENDAR -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>📅 Calendario Disponibilità</h2>
+                </div>
+                <div id="calendar-container" class="calendar-container">
+                    <p class="info">Calendario Google integrato (configurare in SETUP.md)</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Centro Analisi Anxur © 2024 | Voicebot Wildix Demo</p>
+        </footer>
+    </div>
+
+    <!-- MODAL: Callback Completato -->
+    <div id="modal-callback" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3>✅ Callback Completato</h3>
+            <form id="form-callback">
+                <div class="form-group">
+                    <label>Cliente:</label>
+                    <p id="modal-cliente-nome" class="form-value"></p>
+                </div>
+                <div class="form-group">
+                    <label>Telefono:</label>
+                    <p id="modal-cliente-telefono" class="form-value"></p>
+                </div>
+                <div class="form-group">
+                    <label>Note (opzionale):</label>
+                    <textarea id="modal-note" placeholder="Es: Prenotato per lunedì 9:30"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Salva e Completa</button>
+                    <button type="button" class="btn btn-secondary modal-close-btn">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: Nuovo Callback Test -->
+    <div id="modal-test-callback" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3>🧪 Test Callback (Simulazione Voicebot)</h3>
+            <form id="form-test-callback">
+                <div class="form-group">
+                    <label>Nome Cliente:</label>
+                    <input type="text" id="test-nome" placeholder="Es: Mario" required>
+                </div>
+                <div class="form-group">
+                    <label>Cognome:</label>
+                    <input type="text" id="test-cognome" placeholder="Es: Rossi" required>
+                </div>
+                <div class="form-group">
+                    <label>Telefono:</label>
+                    <input type="tel" id="test-telefono" placeholder="Es: +39 333 1234567" required>
+                </div>
+                <div class="form-group">
+                    <label>Tipo Analisi:</label>
+                    <select id="test-analisi" required>
+                        <option value="">-- Seleziona --</option>
+                        <option value="Ematologia">Ematologia</option>
+                        <option value="Biochmica">Biochmica</option>
+                        <option value="Sierologia">Sierologia</option>
+                        <option value="Immunologia">Immunologia</option>
+                        <option value="Coagulazione">Coagulazione</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Orario Preferito:</label>
+                    <select id="test-orario">
+                        <option value="qualsiasi">Qualsiasi</option>
+                        <option value="mattina">Mattina (9-13)</option>
+                        <option value="pomeriggio">Pomeriggio (14-18)</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Crea Callback</button>
+                    <button type="button" class="btn btn-secondary modal-close-btn">Annulla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <button id="test-callback-btn" class="btn-floating">🧪 Test</button>
+
+    <script src="script.js"></script>
+</body>
+</html>
