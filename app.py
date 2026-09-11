@@ -18,6 +18,8 @@ import json
 load_dotenv()
 
 app = Flask(__name__)
+# Inizializza il database
+init_db()
 CORS(app)
 
 def get_db_connection():
@@ -347,6 +349,51 @@ def create_callback_internal(data):
     """Helper interno per creare callback"""
     try:
         conn = get_db_connection()
+def init_db():
+    """Crea le tabelle se non esistono"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Crea tabella callback_richieste
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS callback_richieste (
+                id SERIAL PRIMARY KEY,
+                cliente_nome VARCHAR(100),
+                cliente_cognome VARCHAR(100),
+                cliente_telefono VARCHAR(20),
+                tipo_analisi VARCHAR(100),
+                orario_preferito VARCHAR(50),
+                data_ora_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                stato VARCHAR(50) DEFAULT 'attesa',
+                operatrice_assegnata VARCHAR(100),
+                note TEXT
+            );
+        """)
+        
+        # Crea tabella prenotazioni
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS prenotazioni (
+                id SERIAL PRIMARY KEY,
+                cliente_nome VARCHAR(100),
+                cliente_cognome VARCHAR(100),
+                cliente_telefono VARCHAR(20),
+                tipo_analisi VARCHAR(100),
+                data_prenotazione DATE,
+                orario_prenotazione TIME,
+                operatrice_assegnata VARCHAR(100),
+                data_ora_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                note TEXT
+            );
+        """)
+        
+        conn.commit()
+        print("✅ Tabelle create/verificate con successo")
+    except Exception as e:
+        print(f"❌ Errore creazione tabelle: {e}")
+    finally:
+        cursor.close()
+        conn.close()
         cur = conn.cursor()
 
         cur.execute("""
