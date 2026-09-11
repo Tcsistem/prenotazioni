@@ -20,15 +20,20 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-# Database connection
 def get_db_connection():
-    conn = psycopg2.connect(
-        host=os.getenv('DB_HOST'),
-        database=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        port=os.getenv('DB_PORT', 5432)
-    )
+    db_url = os.getenv('DATABASE_URL')
+    if db_url:
+        # Usa DATABASE_URL da Heroku
+        conn = psycopg2.connect(db_url)
+    else:
+        # Fallback per development locale
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST'),
+            database=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            port=os.getenv('DB_PORT', 5432)
+        )
     return conn
 
 # Google Sheets setup
