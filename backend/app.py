@@ -183,7 +183,7 @@ def get_callback(callback_id):
             'error': str(e)
         }), 500
 
-@app.route('/api/callbacks/<int:callback_id>/complete', methods=['POST'])
+@app.route('/api/callbacks/<int:callback_id>/complete', methods=['POST', 'OPTIONS'])
 def complete_callback(callback_id):
     """Completa callback (operatrice ha fatto la richiamata)"""
     try:
@@ -395,31 +395,6 @@ def not_found(e):
 def server_error(e):
     return jsonify({'error': 'Errore server interno'}), 500
 
-@app.route('/api/callbacks/<int:callback_id>/complete', methods=['POST', 'OPTIONS'])
-def complete_callback(callback_id):
-    """Marca un callback come completato"""
-    try:
-        data = request.get_json() or {}
-        note = data.get('note', '')
-        
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        # Aggiorna lo stato a COMPLETATO
-        cur.execute('''
-            UPDATE callback_richieste 
-            SET stato = 'COMPLETATO', note = %s 
-            WHERE id = %s
-        ''', (note, callback_id))
-        
-        conn.commit()
-        cur.close()
-        conn.close()
-        
-        return jsonify({'success': True, 'message': 'Callback completato'})
-    
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 if __name__ == '__main__':
     app.run(
         host='0.0.0.0',
