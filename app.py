@@ -199,6 +199,37 @@ def delete_callback(callback_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     
+    @app.route('/api/callbacks/<int:callback_id>/complete', methods=['POST', 'OPTIONS'])
+def complete_callback(callback_id):
+    """Completa callback (operatrice ha fatto la richiamata)"""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE callback_richieste
+            SET stato = 'COMPLETATO',
+                data_ora_callback_prevista = NOW(),
+                note = %s
+            WHERE id = %s
+        """, (data.get('note', ''), callback_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        # TODO: Cancella riga da Google Sheets
+        return jsonify({
+            'success': True,
+            'message': 'Callback segnato come completato'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()}), 200
