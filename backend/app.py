@@ -5,7 +5,19 @@ Flask API per gestione prenotazioni e callback
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from datetime import datetime, timedelta
+
+# Configurazione CORS per permettere richieste da GitHub Pages
+cors_config = {
+    "origins": [
+        "https://tcsistem.github.io",
+        "http://localhost:3000",
+        "http://localhost:5000"
+    ],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type"],
+    "supports_credentials": True
+}
+CORS(app, resources={r"/api/*": cors_config, r"/health": cors_config})from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 import psycopg2
