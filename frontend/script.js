@@ -6,7 +6,7 @@ console.log('[INFO] API URL: ' + API_BASE_URL);
 // Carica i callback quando la pagina si apre
 document.addEventListener('DOMContentLoaded', function() {
     loadCallbacks();
-    loadPrenotazioni();
+    Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>;
     updateTime();
     setInterval(updateTime, 1000);
     
@@ -65,7 +65,7 @@ async function loadCallbacks() {
             callbacksList.innerHTML = data.data.map(callback => `
                 <div class="callback-item">
                     <strong>${callback.nome} ${callback.cognome}</strong><br>
-                    Telefono: ${callback.telefono}<br>
+                    Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>
                     Analisi: ${callback.tipo_analisi}<br>
                     Orario preferito: ${callback.orario_preferito}<br>
                     <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
@@ -161,7 +161,7 @@ async function submitCallbackComplete(e) {
             document.getElementById('modal-callback').style.display = 'none';
             document.getElementById('form-callback').reset();
             loadCallbacks();
-            loadCompletati();
+            Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>;
         }
     } catch (error) {
         console.error('[ERROR] ❌ Errore:', error.message);
