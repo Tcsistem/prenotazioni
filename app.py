@@ -96,11 +96,14 @@ def list_callbacks():
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("""
-            SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
-                   tipo_analisi, orario_preferito, data_ora_richiesta, stato
-            FROM callback_richieste
-            WHERE stato = 'IN_SOSPESO'
-            ORDER BY data_ora_richiesta ASC
+            SELECT id, 
+                    cliente_nome as nome, 
+                    cliente_cognome as cognome, 
+                    cliente_telefono as telefono,
+                    tipo_analisi, 
+                    orario_preferito, 
+                    data_ora_richiesta, 
+                    stato
         """)
         callbacks = cur.fetchall()
         cur.close()
