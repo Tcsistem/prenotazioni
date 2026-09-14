@@ -212,7 +212,6 @@ def complete_callback(callback_id):
         cur.execute("""
             UPDATE callback_richieste
             SET stato = 'COMPLETATO',
-                data_ora_callback_prevista = NOW(),
                 note = %s
             WHERE id = %s
         """, (data.get('note', ''), callback_id))
