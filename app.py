@@ -198,8 +198,8 @@ def delete_callback(callback_id):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-    
-    @app.route('/api/callbacks/<int:callback_id>/complete', methods=['POST', 'OPTIONS'])
+
+@app.route('/api/callbacks/<int:callback_id>/complete', methods=['POST', 'OPTIONS'])
 def complete_callback(callback_id):
     """Completa callback (operatrice ha fatto la richiamata)"""
     if request.method == 'OPTIONS':
