@@ -1,218 +1,110 @@
-/**
- * Centro Analisi Anxur - Dashboard Operatrici
- * Script principale per la gestione callback e prenotazioni
- */
-
-// ==================== CONFIGURAZIONE ====================
-
 const API_BASE_URL = 'https://prenotazioni-anxur-demo1-6e8d42198352.herokuapp.com';
 
-// ==================== ELEMENTI DOM ====================
+console.log('[INFO] Dashboard initialized');
+console.log('[INFO] API URL: ' + API_BASE_URL);
 
-const callbackList = document.getElementById('callback-list');
-const prenotazioniList = document.getElementById('prenotazioni-list');
-const refreshBtn = document.getElementById('refresh-btn');
-const refreshPrenotazioniBtn = document.getElementById('refresh-prenotazioni-btn');
-const testCallbackBtn = document.getElementById('test-callback-btn');
-const statusBadge = document.getElementById('status-badge');
-const timeDisplay = document.getElementById('time-display');
+// Carica i callback quando la pagina si apre
+document.addEventListener('DOMContentLoaded', function() {
+    loadCallbacks();
+    loadPrenotazioni();
+    updateTime();
+    setInterval(updateTime, 1000);
+    
+    // Event listeners per i modal
+    setupModalListeners();
+});
 
-// Modals
-const modalCallback = document.getElementById('modal-callback');
-const modalTestCallback = document.getElementById('modal-test-callback');
-const formCallback = document.getElementById('form-callback');
-const formTestCallback = document.getElementById('form-test-callback');
+function setupModalListeners() {
+    const modalCallback = document.getElementById('modal-callback');
+    const modalTest = document.getElementById('modal-test-callback');
+    const testBtn = document.getElementById('test-callback-btn');
+    const formTest = document.getElementById('form-test-callback');
+    const formCallback = document.getElementById('form-callback');
+    
+    if (testBtn) {
+        testBtn.addEventListener('click', () => {
+            if (modalTest) modalTest.style.display = 'block';
+        });
+    }
+    
+    if (formTest) {
+        formTest.addEventListener('submit', createTestCallback);
+    }
+    
+    if (formCallback) {
+        formCallback.addEventListener('submit', submitCallbackComplete);
+    }
+    
+    // Chiudi modal
+    document.querySelectorAll('.modal-close, .modal-close-btn').forEach(el => {
+        el.addEventListener('click', function() {
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+        });
+    });
+    
+    // Chiudi modal cliccando fuori
+    window.addEventListener('click', function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    });
+}
 
-let currentCallbackId = null;
-
-// ==================== FUNZIONI PRINCIPALI ====================
-
-/**
- * Carica lista callback dal server
- */
 async function loadCallbacks() {
     try {
-        callbackList.innerHTML = '<p class="loading">Caricamento...</p>';
-
         const response = await fetch(`${API_BASE_URL}/api/callbacks`);
         const data = await response.json();
-
-        if (!data.success) {
-            callbackList.innerHTML = `<p class="info">⚠️ Errore: ${data.error}</p>`;
+        
+        const callbacksList = document.getElementById('callbacks-list');
+        if (!callbacksList) {
+            console.error('❌ Elemento callbacks-list non trovato');
             return;
         }
-
-        if (data.data.length === 0) {
-            callbackList.innerHTML = '<p class="empty">✅ Nessun callback in sospeso</p>';
-            return;
-        }
-
-        callbackList.innerHTML = data.data.map(callback => `
-            <div class="callback-item">
-                <div class="callback-info">
-                    <div class="callback-name">📞 ${callback.nome} ${callback.cognome}</div>
-                    <div class="callback-details">
-                        <div class="callback-detail">
-                            <span>📱 ${callback.telefono}</span>
-                        </div>
-                        <div class="callback-detail">
-                            <span>🧪 ${callback.tipo_analisi}</span>
-                        </div>
-                        <div class="callback-detail">
-                            <span>🕐 ${callback.orario_preferito}</span>
-                        </div>
-                        <div class="callback-detail">
-                            <span>⏰ ${formatTime(callback.data_ora_richiesta)}</span>
-                        </div>
+        
+        if (data.data && data.data.length > 0) {
+            callbacksList.innerHTML = data.data.map(callback => `
+                <div class="callback-item">
+                    <strong>${callback.nome} ${callback.cognome}</strong><br>
+                    Telefono: ${callback.telefono}<br>
+                    Analisi: ${callback.tipo_analisi}<br>
+                    Orario preferito: ${callback.orario_preferito}<br>
+                    <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-primary" onclick="openCompleteModal(${callback.id}, '${callback.nome}', '${callback.cognome}', '${callback.telefono}')">✓ Completato</button>
+                        <button class="btn btn-danger" onclick="deleteCallback(${callback.id})">🗑️ Elimina</button>
                     </div>
                 </div>
-                <div class="callback-actions">
-                    <button class="btn btn-success" onclick="openCallbackModal(${callback.id}, '${callback.nome} ${callback.cognome}', '${callback.telefono}')">
-                        ✓ Completato
-                    </button>
-                    <button class="btn btn-danger" onclick="deleteCallback(${callback.id})">
-                        🗑️ Rimuovi
-                    </button>
-                </div>
-            </div>
-        `).join('');
-
+            `).join('');
+        } else {
+            callbacksList.innerHTML = '<p>Nessun callback in sospeso</p>';
+        }
     } catch (error) {
-        console.error('Error loading callbacks:', error);
-        callbackList.innerHTML = '<p class="info">❌ Errore di connessione al server</p>';
+        console.error('[ERROR] ❌ Errore:', error.message);
     }
 }
 
-/**
- * Carica prenotazioni odierne
- */
 async function loadPrenotazioni() {
     try {
-        prenotazioniList.innerHTML = '<p class="loading">Caricamento...</p>';
-
         const response = await fetch(`${API_BASE_URL}/api/prenotazioni`);
         const data = await response.json();
-
-        if (!data.success) {
-            prenotazioniList.innerHTML = `<p class="info">⚠️ Errore: ${data.error}</p>`;
-            return;
-        }
-
-        if (data.data.length === 0) {
-            prenotazioniList.innerHTML = '<p class="empty">📅 Nessuna prenotazione per oggi</p>';
-            return;
-        }
-
-        prenotazioniList.innerHTML = data.data.map(p => `
-            <div class="prenotazione-item">
-                <div class="callback-info">
-                    <div class="callback-name">✅ ${p.cliente_nome} ${p.cliente_cognome}</div>
-                    <div class="callback-details">
-                        <div class="callback-detail">
-                            <span>🕐 ${p.ora_prenotazione}</span>
-                        </div>
-                        <div class="callback-detail">
-                            <span>🧪 ${p.tipo_analisi}</span>
-                        </div>
-                        <div class="callback-detail">
-                            <span>📱 ${p.cliente_telefono}</span>
-                        </div>
-                    </div>
+        
+        const prenotazioniList = document.getElementById('prenotazioni-list');
+        if (!prenotazioniList) return;
+        
+        if (data.data && data.data.length > 0) {
+            prenotazioniList.innerHTML = data.data.map(p => `
+                <div class="callback-item">
+                    <strong>${p.cliente_nome} ${p.cliente_cognome}</strong><br>
+                    Telefono: ${p.cliente_telefono}<br>
+                    Analisi: ${p.tipo_analisi}<br>
+                    Data: ${p.data_prenotazione} ore ${p.orario_prenotazione}
                 </div>
-            </div>
-        `).join('');
-
-    } catch (error) {
-        console.error('Error loading prenotazioni:', error);
-        prenotazioniList.innerHTML = '<p class="info">❌ Errore di connessione</p>';
-    }
-}
-
-/**
- * Completa callback (POST richiesta al server)
- */
-async function completeCallback(callbackId, note) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/callbacks/${callbackId}/complete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ note })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            closeCallbackModal();
-            showNotification('✅ Callback segnato come completato', 'success');
-            loadCallbacks();
+            `).join('');
         } else {
-            showNotification('❌ Errore: ' + data.error, 'error');
+            prenotazioniList.innerHTML = '<p>Nessuna prenotazione per oggi</p>';
         }
     } catch (error) {
-        console.error('Error completing callback:', error);
-        showNotification('❌ Errore di connessione', 'error');
-    }
-}
-
-/**
- * Cancella callback
- */
-async function deleteCallback(callbackId) {
-    if (!confirm('Sei sicuro di voler rimuovere questo callback?')) return;
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/callbacks/${callbackId}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showNotification('✅ Callback rimosso', 'success');
-            loadCallbacks();
-        } else {
-            showNotification('❌ Errore: ' + data.error, 'error');
-        }
-    } catch (error) {
-        console.error('Error deleting callback:', error);
-        showNotification('❌ Errore di connessione', 'error');
-    }
-}
-
-/**
- * Crea nuovo callback (test/simulazione voicebot)
- */
-async function createTestCallback(formData) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/callbacks`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                nome: formData.get('nome'),
-                cognome: formData.get('cognome'),
-                telefono: formData.get('telefono'),
-                tipo_analisi: formData.get('analisi'),
-                orario_preferito: formData.get('orario')
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            closeTestCallbackModal();
-            showNotification('✅ Callback creato con successo (test)', 'success');
-            loadCallbacks();
-            formTestCallback.reset();
-        } else {
-            showNotification('❌ Errore: ' + data.error, 'error');
-        }
-    } catch (error) {
-        console.error('Error creating callback:', error);
-        showNotification('❌ Errore di connessione', 'error');
+        console.error('[ERROR] ❌ Errore:', error.message);
     }
 }
 
@@ -222,6 +114,8 @@ async function loadCompletati() {
         const data = await response.json();
         
         const completatiList = document.getElementById('completati-list');
+        if (!completatiList) return;
+        
         if (data.data && data.data.length > 0) {
             completatiList.innerHTML = data.data.map(callback => `
                 <div class="callback-item">
@@ -240,125 +134,104 @@ async function loadCompletati() {
     }
 }
 
-// ==================== MODAL FUNCTIONS ====================
-
-function openCallbackModal(id, nome, telefono) {
-    currentCallbackId = id;
-    document.getElementById('modal-cliente-nome').textContent = nome;
+function openCompleteModal(callbackId, nome, cognome, telefono) {
+    const modal = document.getElementById('modal-callback');
+    if (!modal) return;
+    
+    document.getElementById('modal-cliente-nome').textContent = `${nome} ${cognome}`;
     document.getElementById('modal-cliente-telefono').textContent = telefono;
-    modalCallback.classList.add('show');
+    document.getElementById('form-callback').dataset.callbackId = callbackId;
+    modal.style.display = 'block';
 }
 
-function closeCallbackModal() {
-    modalCallback.classList.remove('show');
-    formCallback.reset();
-}
-
-function openTestCallbackModal() {
-    modalTestCallback.classList.add('show');
-}
-
-function closeTestCallbackModal() {
-    modalTestCallback.classList.remove('show');
-}
-
-// ==================== EVENT LISTENERS ====================
-
-refreshBtn.addEventListener('click', loadCallbacks);
-refreshPrenotazioniBtn.addEventListener('click', loadPrenotazioni);
-testCallbackBtn.addEventListener('click', openTestCallbackModal);
-
-formCallback.addEventListener('submit', (e) => {
+async function submitCallbackComplete(e) {
     e.preventDefault();
+    const callbackId = document.getElementById('form-callback').dataset.callbackId;
     const note = document.getElementById('modal-note').value;
-    completeCallback(currentCallbackId, note);
-});
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/callbacks/${callbackId}/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ note })
+        });
+        
+        if (response.ok) {
+            console.log('[SUCCESS] ✅ Callback completato');
+            document.getElementById('modal-callback').style.display = 'none';
+            document.getElementById('form-callback').reset();
+            loadCallbacks();
+            loadCompletati();
+        }
+    } catch (error) {
+        console.error('[ERROR] ❌ Errore:', error.message);
+    }
+}
 
-formTestCallback.addEventListener('submit', (e) => {
+async function deleteCallback(callbackId) {
+    if (!confirm('Sei sicuro di voler eliminare questo callback?')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/callbacks/${callbackId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            console.log('[SUCCESS] ✅ Callback rimosso');
+            loadCallbacks();
+        }
+    } catch (error) {
+        console.error('[ERROR] ❌ Errore:', error.message);
+    }
+}
+
+async function createTestCallback(e) {
     e.preventDefault();
-    createTestCallback(new FormData(formTestCallback));
-});
+    
+    const nome = document.getElementById('test-nome').value;
+    const cognome = document.getElementById('test-cognome').value;
+    const telefono = document.getElementById('test-telefono').value;
+    const analisi = document.getElementById('test-analisi').value;
+    const orario = document.getElementById('test-orario').value;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/callbacks`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome, cognome, telefono,
+                tipo_analisi: analisi,
+                orario_preferito: orario
+            })
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            console.log('[SUCCESS] ✅ Callback creato');
+            document.getElementById('modal-test-callback').style.display = 'none';
+            document.getElementById('form-test-callback').reset();
+            loadCallbacks();
+        }
+    } catch (error) {
+        console.error('[ERROR] ❌ Errore:', error.message);
+    }
+}
 
-// Modal close handlers
-document.querySelectorAll('.modal-close, .modal-close-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        if (e.target.closest('#modal-callback')) closeCallbackModal();
-        if (e.target.closest('#modal-test-callback')) closeTestCallbackModal();
-    });
-});
-
-// Chiudi modal cliccando fuori
-window.addEventListener('click', (e) => {
-    if (e.target === modalCallback) closeCallbackModal();
-    if (e.target === modalTestCallback) closeTestCallbackModal();
-});
-
-// ==================== UTILITY FUNCTIONS ====================
-
-function formatTime(timestamp) {
-    const date = new Date(timestamp);
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    const tab = document.getElementById(tabName + '-tab');
+    if (tab) {
+        tab.style.display = 'block';
+    }
+    
+    if (tabName === 'completati') {
+        loadCompletati();
+    }
 }
 
 function updateTime() {
-    const now = new Date();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    timeDisplay.textContent = `${hours}:${minutes}`;
-}
-
-function showNotification(message, type = 'info') {
-    // Notifica semplice (migliorare con toast)
-    console.log(`[${type.toUpperCase()}] ${message}`);
-    // Opzionale: mostrare una notifica del browser
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Centro Anxur', { body: message });
+    const timeDisplay = document.getElementById('time-display');
+    if (timeDisplay) {
+        timeDisplay.textContent = new Date().toLocaleTimeString('it-IT');
     }
 }
-
-function checkServerStatus() {
-    fetch(`${API_BASE_URL}/health`)
-        .then(r => r.json())
-        .then(() => {
-            statusBadge.textContent = '● Online';
-            statusBadge.className = 'badge badge-online';
-        })
-        .catch(() => {
-            statusBadge.textContent = '● Offline';
-            statusBadge.className = 'badge badge-offline';
-        });
-}
-
-// ==================== INITIALIZATION ====================
-
-document.addEventListener('DOMContentLoaded', () => {
-    console.log(`[INFO] Dashboard initialized`);
-    console.log(`[INFO] API URL: ${API_BASE_URL}`);
-
-    // Carica dati iniziali
-    loadCallbacks();
-    loadPrenotazioni();
-    checkServerStatus();
-    updateTime();
-
-    // Aggiorna ogni 30 secondi
-    setInterval(() => {
-        loadCallbacks();
-        updateTime();
-        checkServerStatus();
-    }, 30000);
-
-    // Richiedi permesso notifiche
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
-
-    // Chiedi API URL se non configurato
-    const savedUrl = localStorage.getItem('API_BASE_URL');
-    if (!savedUrl) {
-        const url = prompt('Inserisci URL backend (es: https://tuoapp.herokuapp.com)', 'http://localhost:5000');
-        if (url) localStorage.setItem('API_BASE_URL', url);
-    }
-});
