@@ -50,10 +50,10 @@ async function loadCallbacks() {
         callbackList.innerHTML = data.data.map(callback => `
             <div class="callback-item">
                 <div class="callback-info">
-                    <div class="callback-name">📞 ${callback.cliente_nome} ${callback.cliente_cognome}</div>
+                    <div class="callback-name">📞 ${callback.nome} ${callback.cognome}</div>
                     <div class="callback-details">
                         <div class="callback-detail">
-                            <span>📱 ${callback.cliente_telefono}</span>
+                            <span>📱 ${callback.telefono}</span>
                         </div>
                         <div class="callback-detail">
                             <span>🧪 ${callback.tipo_analisi}</span>
@@ -67,7 +67,7 @@ async function loadCallbacks() {
                     </div>
                 </div>
                 <div class="callback-actions">
-                    <button class="btn btn-success" onclick="openCallbackModal(${callback.id}, '${callback.cliente_nome} ${callback.cliente_cognome}', '${callback.cliente_telefono}')">
+                    <button class="btn btn-success" onclick="openCallbackModal(${callback.id}, '${callback.nome} ${callback.cognome}', '${callback.telefono}')">
                         ✓ Completato
                     </button>
                     <button class="btn btn-danger" onclick="deleteCallback(${callback.id})">
