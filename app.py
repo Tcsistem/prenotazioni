@@ -78,6 +78,30 @@ def init_db():
         cursor.close()
         conn.close()
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS medici (
+        id SERIAL PRIMARY KEY,
+        nome VARCHAR(100),
+        specializzazione VARCHAR(100),
+        email VARCHAR(100),
+        orario_inizio VARCHAR(5),
+        orario_fine VARCHAR(5),
+        giorni_lavoro VARCHAR(100)
+    );
+""")
+
+# Inserisci medici di prova (solo se la tabella è vuota)
+cursor.execute("SELECT COUNT(*) FROM medici;")
+if cursor.fetchone()[0] == 0:
+    cursor.execute("""
+        INSERT INTO medici (nome, specializzazione, email, orario_inizio, orario_fine, giorni_lavoro)
+        VALUES 
+            ('Dr. Rossi', 'Ematologia', 'rossi@anxur.it', '09:00', '13:00', 'Lun-Ven'),
+            ('Dr. Bianchi', 'Biochimica', 'bianchi@anxur.it', '09:00', '13:00', 'Lun-Ven'),
+            ('Dr. Verdi', 'Sierologia', 'verdi@anxur.it', '14:00', '18:00', 'Lun-Ven'),
+            ('Dr. Neri', 'Immunologia', 'neri@anxur.it', '09:00', '13:00', 'Lun-Ven')
+    """)
+
 # Inizializza il database
 init_db()
 
@@ -229,7 +253,60 @@ def complete_callback(callback_id):
             'error': str(e)
         }), 500
 
-@app.route('/health', methods=['GET'])
+@app.route('/api/medici', methods=['GET'])
+def list_medici():
+    """Lista tutti i medici"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT * FROM medici ORDER BY nome")
+        medici = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True, 'data': medici}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/medici', methods=['POST'])
+def create_medico():
+    """Aggiungi un nuovo medico"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO medici (nome, specializzazione, email, orario_inizio, orario_fine, giorni_lavoro)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (data['nome'], data['specializzazione'], data.get('email'), 
+              data['orario_inizio'], data['orario_fine'], data.get('giorni_lavoro', 'Lun-Ven')))
+        medico_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True, 'medico_id': medico_id}), 201
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/medici/<int:medico_id>', methods=['PUT'])
+def update_medico(medico_id):
+    """Modifica un medico"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE medici 
+            SET nome=%s, specializzazione=%s, email=%s, orario_inizio=%s, orario_fine=%s, giorni_lavoro=%s
+            WHERE id=%s
+        """, (data['nome'], data['specializzazione'], data.get('email'),
+              data['orario_inizio'], data['orario_fine'], data.get('giorni_lavoro'), medico_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 def health():
     return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()}), 200
 
