@@ -216,6 +216,30 @@ async function createTestCallback(formData) {
     }
 }
 
+async function loadCompletati() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/callbacks/completati`);
+        const data = await response.json();
+        
+        const completatiList = document.getElementById('completati-list');
+        if (data.data && data.data.length > 0) {
+            completatiList.innerHTML = data.data.map(callback => `
+                <div class="callback-item">
+                    <strong>${callback.nome} ${callback.cognome}</strong><br>
+                    Telefono: ${callback.telefono}<br>
+                    Analisi: ${callback.tipo_analisi}<br>
+                    Note: ${callback.note || 'nessuna'}<br>
+                    <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
+                </div>
+            `).join('');
+        } else {
+            completatiList.innerHTML = '<p>Nessun callback completato oggi</p>';
+        }
+    } catch (error) {
+        console.error('[ERROR] ❌ Errore:', error.message);
+    }
+}
+
 // ==================== MODAL FUNCTIONS ====================
 
 function openCallbackModal(id, nome, telefono) {
