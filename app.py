@@ -233,6 +233,27 @@ def complete_callback(callback_id):
 def health():
     return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()}), 200
 
+@app.route('/api/callbacks/completati', methods=['GET'])
+def list_completati():
+    """Lista tutti i callback completati di oggi"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT id, cliente_nome as nome, cliente_cognome as cognome, 
+                   cliente_telefono as telefono, tipo_analisi, 
+                   data_ora_richiesta, stato, note
+            FROM callback_richieste
+            WHERE stato = 'COMPLETATO' AND DATE(data_ora_richiesta) = CURRENT_DATE
+            ORDER BY data_ora_richiesta DESC
+        """)
+        callbacks = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True, 'data': callbacks, 'count': len(callbacks)}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.errorhandler(404)
 def not_found(e):
     return jsonify({'error': 'Endpoint non trovato'}), 404
