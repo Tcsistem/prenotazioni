@@ -5,6 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Centro Anxur - Dashboard Operatrici</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+#tabs {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+    border-bottom: 2px solid #ddd;
+}
+
+#tabs button {
+    padding: 10px 20px;
+    background: #f0f0f0;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#tabs button:hover {
+    background: #e0e0e0;
+}
+
+.tab-content {
+    padding: 20px 0;
+}
+
+.callback-item {
+    background: #f9f9f9;
+    padding: 15px;
+    margin: 10px 0;
+    border-left: 4px solid #4CAF50;
+    border-radius: 4px;
+}
+    </style>
 </head>
 <body>
     <div class="container">
@@ -17,39 +49,26 @@
         </header>
 
         <main>
-            <!-- SEZIONE: CALLBACK IN SOSPESO -->
-            <section class="panel">
-                <div class="panel-header">
-                    <h2>📋 Callback in Sospeso</h2>
-                    <button id="refresh-btn" class="btn btn-secondary">🔄 Aggiorna</button>
-                </div>
+            <div id="tabs">
+                <button onclick="showTab('callbacks')">📞 Callback in Sospeso</button>
+                <button onclick="showTab('prenotazioni')">📅 Prenotazioni</button>
+                <button onclick="showTab('completati')">✅ Storico Richiamate</button>
+            </div>
 
-                <div id="callback-list" class="callback-list">
-                    <p class="loading">Caricamento...</p>
-                </div>
-            </section>
+            <div id="callbacks-tab" class="tab-content">
+                <h2>Callback in Sospeso</h2>
+                <div id="callbacks-list"></div>
+            </div>
 
-            <!-- SEZIONE: PRENOTAZIONI ODIERNE -->
-            <section class="panel">
-                <div class="panel-header">
-                    <h2>✅ Prenotazioni Odierne</h2>
-                    <button id="refresh-prenotazioni-btn" class="btn btn-secondary">🔄 Aggiorna</button>
-                </div>
+            <div id="prenotazioni-tab" class="tab-content" style="display:none;">
+                <h2>Prenotazioni Odierne</h2>
+                <div id="prenotazioni-list"></div>
+            </div>
 
-                <div id="prenotazioni-list" class="prenotazioni-list">
-                    <p class="loading">Caricamento...</p>
-                </div>
-            </section>
-
-            <!-- SEZIONE: GOOGLE CALENDAR -->
-            <section class="panel">
-                <div class="panel-header">
-                    <h2>📅 Calendario Disponibilità</h2>
-                </div>
-                <div id="calendar-container" class="calendar-container">
-                    <p class="info">Calendario Google integrato (configurare in SETUP.md)</p>
-                </div>
-            </section>
+            <div id="completati-tab" class="tab-content" style="display:none;">
+                <h2>Storico Richiamate Oggi</h2>
+                <div id="completati-list"></div>
+            </div>
         </main>
 
         <footer>
@@ -130,6 +149,16 @@
 
     <button id="test-callback-btn" class="btn-floating">🧪 Test</button>
 
-    <script src="script.js?v=2"></script>
+    <script src="script.js?v=3"></script>
+    <script>
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.getElementById(tabName + '-tab').style.display = 'block';
+    
+    if (tabName === 'completati') {
+        loadCompletati();
+    }
+}
+    </script>
 </body>
 </html>
