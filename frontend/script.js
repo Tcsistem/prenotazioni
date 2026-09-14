@@ -5,7 +5,7 @@
 
 // ==================== CONFIGURAZIONE ====================
 
-const API_BASE_URL = localStorage.getItem('API_BASE_URL') || 'http://localhost:5000';
+const API_BASE_URL = 'https://prenotazioni-anxur-demo1-6e8d42198352.herokuapp.com';
 
 // ==================== ELEMENTI DOM ====================
 
