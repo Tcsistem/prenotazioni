@@ -6,7 +6,7 @@ console.log('[INFO] API URL: ' + API_BASE_URL);
 // Carica i callback quando la pagina si apre
 document.addEventListener('DOMContentLoaded', function() {
     loadCallbacks();
-    Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>;
+    loadPrenotazioni();
     updateTime();
     setInterval(updateTime, 1000);
     
@@ -95,7 +95,7 @@ async function loadPrenotazioni() {
             prenotazioniList.innerHTML = data.data.map(p => `
                 <div class="callback-item">
                     <strong>${p.cliente_nome} ${p.cliente_cognome}</strong><br>
-                    Telefono: ${p.cliente_telefono}<br>
+                    Telefono: <a href="tel:${p.cliente_telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${p.cliente_telefono}</a><br>
                     Analisi: ${p.tipo_analisi}<br>
                     Data: ${p.data_prenotazione} ore ${p.orario_prenotazione}
                 </div>
@@ -120,7 +120,7 @@ async function loadCompletati() {
             completatiList.innerHTML = data.data.map(callback => `
                 <div class="callback-item">
                     <strong>${callback.nome} ${callback.cognome}</strong><br>
-                    Telefono: ${callback.telefono}<br>
+                    Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>
                     Analisi: ${callback.tipo_analisi}<br>
                     Note: ${callback.note || 'nessuna'}<br>
                     <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
@@ -161,7 +161,7 @@ async function submitCallbackComplete(e) {
             document.getElementById('modal-callback').style.display = 'none';
             document.getElementById('form-callback').reset();
             loadCallbacks();
-            Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>;
+            loadCompletati();
         }
     } catch (error) {
         console.error('[ERROR] ❌ Errore:', error.message);
