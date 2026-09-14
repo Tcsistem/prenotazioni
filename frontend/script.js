@@ -65,7 +65,7 @@ async function loadCallbacks() {
             callbacksList.innerHTML = data.data.map(callback => `
                 <div class="callback-item">
                     <strong>${callback.nome} ${callback.cognome}</strong><br>
-                    Telefono: ${callback.telefono}<br>
+                    Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>
                     Analisi: ${callback.tipo_analisi}<br>
                     Orario preferito: ${callback.orario_preferito}<br>
                     <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
@@ -95,7 +95,7 @@ async function loadPrenotazioni() {
             prenotazioniList.innerHTML = data.data.map(p => `
                 <div class="callback-item">
                     <strong>${p.cliente_nome} ${p.cliente_cognome}</strong><br>
-                    Telefono: ${p.cliente_telefono}<br>
+                    Telefono: <a href="tel:${p.cliente_telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${p.cliente_telefono}</a><br>
                     Analisi: ${p.tipo_analisi}<br>
                     Data: ${p.data_prenotazione} ore ${p.orario_prenotazione}
                 </div>
@@ -120,7 +120,7 @@ async function loadCompletati() {
             completatiList.innerHTML = data.data.map(callback => `
                 <div class="callback-item">
                     <strong>${callback.nome} ${callback.cognome}</strong><br>
-                    Telefono: ${callback.telefono}<br>
+                    Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>
                     Analisi: ${callback.tipo_analisi}<br>
                     Note: ${callback.note || 'nessuna'}<br>
                     <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
