@@ -38,7 +38,7 @@ def init_db():
     """Crea le tabelle se non esistono"""
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS callback_richieste (
@@ -54,7 +54,7 @@ def init_db():
                 note TEXT
             );
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS prenotazioni (
                 id SERIAL PRIMARY KEY,
@@ -69,7 +69,31 @@ def init_db():
                 note TEXT
             );
         """)
-        
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS medici (
+                id SERIAL PRIMARY KEY,
+                nome VARCHAR(100),
+                specializzazione VARCHAR(100),
+                email VARCHAR(100),
+                orario_inizio VARCHAR(5),
+                orario_fine VARCHAR(5),
+                giorni_lavoro VARCHAR(100)
+            );
+        """)
+
+        # Inserisci medici di prova (solo se la tabella è vuota)
+        cursor.execute("SELECT COUNT(*) FROM medici;")
+        if cursor.fetchone()[0] == 0:
+            cursor.execute("""
+                INSERT INTO medici (nome, specializzazione, email, orario_inizio, orario_fine, giorni_lavoro)
+                VALUES
+                    ('Dr. Rossi', 'Ematologia', 'rossi@anxur.it', '09:00', '13:00', 'Lun-Ven'),
+                    ('Dr. Bianchi', 'Biochimica', 'bianchi@anxur.it', '09:00', '13:00', 'Lun-Ven'),
+                    ('Dr. Verdi', 'Sierologia', 'verdi@anxur.it', '14:00', '18:00', 'Lun-Ven'),
+                    ('Dr. Neri', 'Immunologia', 'neri@anxur.it', '09:00', '13:00', 'Lun-Ven')
+            """)
+
         conn.commit()
         print("✅ Tabelle create/verificate con successo")
     except Exception as e:
@@ -77,30 +101,6 @@ def init_db():
     finally:
         cursor.close()
         conn.close()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS medici (
-        id SERIAL PRIMARY KEY,
-        nome VARCHAR(100),
-        specializzazione VARCHAR(100),
-        email VARCHAR(100),
-        orario_inizio VARCHAR(5),
-        orario_fine VARCHAR(5),
-        giorni_lavoro VARCHAR(100)
-    );
-""")
-
-# Inserisci medici di prova (solo se la tabella è vuota)
-cursor.execute("SELECT COUNT(*) FROM medici;")
-if cursor.fetchone()[0] == 0:
-    cursor.execute("""
-        INSERT INTO medici (nome, specializzazione, email, orario_inizio, orario_fine, giorni_lavoro)
-        VALUES 
-            ('Dr. Rossi', 'Ematologia', 'rossi@anxur.it', '09:00', '13:00', 'Lun-Ven'),
-            ('Dr. Bianchi', 'Biochimica', 'bianchi@anxur.it', '09:00', '13:00', 'Lun-Ven'),
-            ('Dr. Verdi', 'Sierologia', 'verdi@anxur.it', '14:00', '18:00', 'Lun-Ven'),
-            ('Dr. Neri', 'Immunologia', 'neri@anxur.it', '09:00', '13:00', 'Lun-Ven')
-    """)
 
 # Inizializza il database
 init_db()
@@ -187,7 +187,6 @@ def get_callback(callback_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-
 @app.route('/api/prenotazioni', methods=['GET'])
 def list_prenotazioni():
     try:
@@ -212,13 +211,13 @@ def delete_callback(callback_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Elimina il callback dal database
         cursor.execute('DELETE FROM callback_richieste WHERE id = %s', (callback_id,))
         conn.commit()
         cursor.close()
         conn.close()
-        
+
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -228,7 +227,7 @@ def complete_callback(callback_id):
     """Completa callback (operatrice ha fatto la richiamata)"""
     if request.method == 'OPTIONS':
         return '', 204
-    
+
     try:
         data = request.json
         conn = get_db_connection()
@@ -252,6 +251,27 @@ def complete_callback(callback_id):
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/callbacks/completati', methods=['GET'])
+def list_completati():
+    """Lista tutti i callback completati di oggi"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT id, cliente_nome as nome, cliente_cognome as cognome,
+                   cliente_telefono as telefono, tipo_analisi,
+                   data_ora_richiesta, stato, note
+            FROM callback_richieste
+            WHERE stato = 'COMPLETATO' AND DATE(data_ora_richiesta) = CURRENT_DATE
+            ORDER BY data_ora_richiesta DESC
+        """)
+        callbacks = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True, 'data': callbacks, 'count': len(callbacks)}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/medici', methods=['GET'])
 def list_medici():
@@ -278,7 +298,7 @@ def create_medico():
             INSERT INTO medici (nome, specializzazione, email, orario_inizio, orario_fine, giorni_lavoro)
             VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
-        """, (data['nome'], data['specializzazione'], data.get('email'), 
+        """, (data['nome'], data['specializzazione'], data.get('email'),
               data['orario_inizio'], data['orario_fine'], data.get('giorni_lavoro', 'Lun-Ven')))
         medico_id = cur.fetchone()[0]
         conn.commit()
@@ -296,7 +316,7 @@ def update_medico(medico_id):
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("""
-            UPDATE medici 
+            UPDATE medici
             SET nome=%s, specializzazione=%s, email=%s, orario_inizio=%s, orario_fine=%s, giorni_lavoro=%s
             WHERE id=%s
         """, (data['nome'], data['specializzazione'], data.get('email'),
@@ -307,29 +327,10 @@ def update_medico(medico_id):
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()}), 200
-
-@app.route('/api/callbacks/completati', methods=['GET'])
-def list_completati():
-    """Lista tutti i callback completati di oggi"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("""
-            SELECT id, cliente_nome as nome, cliente_cognome as cognome, 
-                   cliente_telefono as telefono, tipo_analisi, 
-                   data_ora_richiesta, stato, note
-            FROM callback_richieste
-            WHERE stato = 'COMPLETATO' AND DATE(data_ora_richiesta) = CURRENT_DATE
-            ORDER BY data_ora_richiesta DESC
-        """)
-        callbacks = cur.fetchall()
-        cur.close()
-        conn.close()
-        return jsonify({'success': True, 'data': callbacks, 'count': len(callbacks)}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.errorhandler(404)
 def not_found(e):
