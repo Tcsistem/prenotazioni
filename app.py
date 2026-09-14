@@ -164,6 +164,22 @@ def get_callback(callback_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/callbacks/<int:callback_id>', methods=['DELETE'])
+def delete_callback(callback_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Elimina il callback dal database
+        cursor.execute('DELETE FROM callback_richieste WHERE id = %s', (callback_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/prenotazioni', methods=['GET'])
 def list_prenotazioni():
     try:
@@ -183,6 +199,22 @@ def list_prenotazioni():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/callbacks/<int:callback_id>', methods=['DELETE'])
+def delete_callback(callback_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Elimina il callback dal database
+        cursor.execute('DELETE FROM callback_richieste WHERE id = %s', (callback_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()}), 200
