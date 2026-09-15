@@ -151,7 +151,7 @@ def create_callback():
             RETURNING id
         """, (data['nome'], data['cognome'], data['telefono'], data['tipo_analisi'], data.get('orario_preferito', 'qualsiasi')))
 
-        callback_id = cur.fetchone()[0]
+        callback_id = cur.fetchone()['id']
         conn.commit()
         cur.close()
         conn.close()
@@ -372,7 +372,7 @@ def wildix_richiesta_prenotazione():
                 RETURNING id
             """, (nome, cognome, telefono, tipo_analisi))
             
-            callback_id = cur.fetchone()[0]
+            callback_id = cur.fetchone()['id']
             conn.commit()
             cur.close()
             conn.close()
