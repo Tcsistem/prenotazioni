@@ -328,6 +328,80 @@ def update_medico(medico_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/wildix/richiesta-prenotazione', methods=['POST'])
+def wildix_richiesta_prenotazione():
+    """Endpoint per Wildix - riceve richiesta di prenotazione"""
+    try:
+        data = request.json
+        nome = data.get('nome')
+        cognome = data.get('cognome')
+        telefono = data.get('telefono')
+        tipo_analisi = data.get('tipo_analisi')
+        
+        if not all([nome, cognome, telefono, tipo_analisi]):
+            return jsonify({'success': False, 'error': 'Dati incompleti'}), 400
+        
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Cerca un medico con quella specializzazione
+        cur.execute("""
+            SELECT * FROM medici 
+            WHERE LOWER(specializzazione) = LOWER(%s)
+            LIMIT 1
+        """, (tipo_analisi,))
+        
+        medico = cur.fetchone()
+        
+        if not medico:
+            # Nessun medico disponibile - crea callback in sospeso
+            cur.execute("""
+                INSERT INTO callback_richieste
+                (cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi, stato, data_ora_richiesta)
+                VALUES (%s, %s, %s, %s, 'IN_SOSPESO', NOW())
+                RETURNING id
+            """, (nome, cognome, telefono, tipo_analisi))
+            
+            callback_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return jsonify({
+                'success': False,
+                'message': 'Nessun medico disponibile. Un operatrice ti richiamerà presto.',
+                'callback_id': callback_id
+            }), 200
+        
+        # Medico trovato - crea prenotazione per domani alle 10:00
+        data_prenotazione = datetime.now().date() + timedelta(days=1)
+        orario_prenotazione = '10:00'
+        
+        cur.execute("""
+            INSERT INTO prenotazioni
+            (cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi, 
+             data_prenotazione, orario_prenotazione, operatrice_assegnata, data_ora_creazione)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            RETURNING id
+        """, (nome, cognome, telefono, tipo_analisi, data_prenotazione, orario_prenotazione, medico['nome']))
+        
+        prenotazione_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Prenotazione confermata con {medico["nome"]} il {data_prenotazione} alle {orario_prenotazione}',
+            'prenotazione_id': prenotazione_id,
+            'medico': medico['nome'],
+            'data': str(data_prenotazione),
+            'orario': orario_prenotazione
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()}), 200
