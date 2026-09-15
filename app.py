@@ -336,19 +336,17 @@ def wildix_richiesta_prenotazione():
     try:
         data = request.json
         print(f"DEBUG: data ricevuti = {data}")
+        
         if data is None:
             print("ERROR: request.json è None!")
             return jsonify({'success': False, 'error': 'Content-Type deve essere application/json'}), 400
-
-@app.route('/api/wildix/richiesta-prenotazione', methods=['POST'])
-def wildix_richiesta_prenotazione():
-    """Endpoint per Wildix - riceve richiesta di prenotazione"""
-    try:
-        data = request.json
+        
         nome = data.get('nome')
         cognome = data.get('cognome')
         telefono = data.get('telefono')
         tipo_analisi = data.get('tipo_analisi')
+        
+        print(f"DEBUG: nome={nome}, cognome={cognome}, telefono={telefono}, tipo_analisi={tipo_analisi}")
         
         if not all([nome, cognome, telefono, tipo_analisi]):
             return jsonify({'success': False, 'error': 'Dati incompleti'}), 400
@@ -412,6 +410,9 @@ def wildix_richiesta_prenotazione():
         }), 201
         
     except Exception as e:
+        print(f"ERROR in wildix_richiesta_prenotazione: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/health', methods=['GET'])
