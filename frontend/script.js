@@ -7,6 +7,8 @@ console.log('[INFO] API URL: ' + API_BASE_URL);
 document.addEventListener('DOMContentLoaded', function() {
     loadCallbacks();
     loadPrenotazioni();
+    loadCompletati();
+    initCalendario();  // ← AGGIUNGI QUESTA RIGA
     updateTime();
     setInterval(updateTime, 1000);
     
@@ -382,10 +384,3 @@ function nextMese() {
     renderCalendario();
     loadCalendarioData();
 }
-
-// Inizializza quando carica la pagina
-document.addEventListener('DOMContentLoaded', () => {
-    // Il resto del codice iniziale...
-    // Aggiungi questa riga:
-    initCalendario();
-});
