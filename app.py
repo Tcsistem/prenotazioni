@@ -5,6 +5,20 @@ Flask API per gestione prenotazioni e callback
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import gspread
+from google.oauth2.service_account import Credentials
+import json
+
+# Load environment variables
+load_dotenv()
+
+# Crea app PRIMA di usarla
+app = Flask(__name__)
 
 # Configurazione CORS per permettere richieste da GitHub Pages
 cors_config = {
@@ -17,20 +31,7 @@ cors_config = {
     "allow_headers": ["Content-Type"],
     "supports_credentials": True
 }
-CORS(app, resources={r"/api/*": cors_config, r"/health": cors_config})from datetime import datetime, timedelta
-import os
-from dotenv import load_dotenv
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import gspread
-from google.oauth2.service_account import Credentials
-import json
-
-# Load environment variables
-load_dotenv()
-
-app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": cors_config, r"/health": cors_config})
 
 # Database connection
 def get_db_connection():
@@ -100,7 +101,7 @@ def create_callback():
             }), 400
 
         conn = get_db_connection()
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
 
         # Insert callback
         cur.execute("""
@@ -117,7 +118,7 @@ def create_callback():
             data.get('orario_preferito', 'qualsiasi')
         ))
 
-        callback_id = cur.fetchone()[0]
+        callback_id = cur.fetchone()['id']
         conn.commit()
 
         # Aggiungi a Google Sheets (callback list)
@@ -187,7 +188,7 @@ def get_callback(callback_id):
 def complete_callback(callback_id):
     """Completa callback (operatrice ha fatto la richiamata)"""
     try:
-        data = request.json
+        data = request.json if request.json else {}
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -203,8 +204,6 @@ def complete_callback(callback_id):
         conn.commit()
         cur.close()
         conn.close()
-
-        # TODO: Cancella riga da Google Sheets
 
         return jsonify({
             'success': True,
@@ -243,6 +242,112 @@ def delete_callback(callback_id):
             'error': str(e)
         }), 500
 
+@app.route('/api/callbacks/<int:callback_id>/to-prenotazione', methods=['POST'])
+def callback_to_prenotazione(callback_id):
+    """Converte un callback in una prenotazione"""
+    try:
+        data = request.json
+
+        if not data or not data.get('data_prenotazione') or not data.get('orario_prenotazione'):
+            return jsonify({
+                'success': False,
+                'error': 'Campi obbligatori: data_prenotazione, orario_prenotazione'
+            }), 400
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Ottieni dati callback
+        cur.execute("""
+            SELECT cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi
+            FROM callback_richieste
+            WHERE id = %s
+        """, (callback_id,))
+
+        callback = cur.fetchone()
+
+        if not callback:
+            return jsonify({
+                'success': False,
+                'error': 'Callback non trovato'
+            }), 404
+
+        # Converti data
+        try:
+            data_prenotazione = datetime.strptime(data['data_prenotazione'], '%Y-%m-%d').date()
+        except:
+            data_prenotazione = datetime.now().date() + timedelta(days=1)
+
+        # Crea prenotazione
+        cur.execute("""
+            INSERT INTO prenotazioni
+            (cliente_nome, cliente_cognome, cliente_telefono,
+             tipo_analisi, data_prenotazione, orario_prenotazione, stato)
+            VALUES (%s, %s, %s, %s, %s, %s, 'CONFERMATA')
+            RETURNING id
+        """, (
+            callback['cliente_nome'],
+            callback['cliente_cognome'],
+            callback['cliente_telefono'],
+            callback['tipo_analisi'],
+            data_prenotazione,
+            data['orario_prenotazione']
+        ))
+
+        prenotazione_id = cur.fetchone()['id']
+
+        # Elimina callback
+        cur.execute("""
+            DELETE FROM callback_richieste WHERE id = %s
+        """, (callback_id,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'prenotazione_id': prenotazione_id,
+            'message': 'Callback convertito in prenotazione'
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/callbacks/completati', methods=['GET'])
+def list_callbacks_completati():
+    """Lista callback completati"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
+                   tipo_analisi, note, data_ora_richiesta, stato
+            FROM callback_richieste
+            WHERE stato = 'COMPLETATO'
+            ORDER BY data_ora_richiesta DESC
+        """)
+
+        callbacks = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': callbacks,
+            'count': len(callbacks)
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 # ==================== PRENOTAZIONI ENDPOINTS ====================
 
 @app.route('/api/prenotazioni', methods=['GET'])
@@ -262,6 +367,14 @@ def list_prenotazioni():
         """)
 
         prenotazioni = cur.fetchall()
+
+        # Serializza date e time
+        for p in prenotazioni:
+            if p.get('orario_prenotazione'):
+                p['orario_prenotazione'] = p['orario_prenotazione'].isoformat()
+            if p.get('data_prenotazione'):
+                p['data_prenotazione'] = p['data_prenotazione'].isoformat()
+
         cur.close()
         conn.close()
 
@@ -310,6 +423,48 @@ def create_prenotazione():
             'success': True,
             'prenotazione_id': prenotazione_id
         }), 201
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/prenotazioni/mese', methods=['GET'])
+def get_prenotazioni_mese():
+    """Restituisce tutte le prenotazioni di un mese specifico"""
+    try:
+        anno = request.args.get('anno', datetime.now().year, type=int)
+        mese = request.args.get('mese', datetime.now().month, type=int)
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
+                   tipo_analisi, data_prenotazione, orario_prenotazione, operatrice_assegnata
+            FROM prenotazioni
+            WHERE EXTRACT(YEAR FROM data_prenotazione) = %s
+              AND EXTRACT(MONTH FROM data_prenotazione) = %s
+            ORDER BY data_prenotazione ASC, orario_prenotazione ASC
+        """, (anno, mese))
+
+        prenotazioni = cur.fetchall()
+
+        # Serializza date e time
+        for p in prenotazioni:
+            if p.get('orario_prenotazione'):
+                p['orario_prenotazione'] = p['orario_prenotazione'].isoformat()
+            if p.get('data_prenotazione'):
+                p['data_prenotazione'] = p['data_prenotazione'].isoformat()
+
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': prenotazioni
+        }), 200
 
     except Exception as e:
         return jsonify({
