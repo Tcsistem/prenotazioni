@@ -422,22 +422,12 @@ def get_prenotazioni_mese():
         anno = request.args.get('anno', datetime.now().year, type=int)
         mese = request.args.get('mese', datetime.now().month, type=int)
         
+        print(f"DEBUG: get_prenotazioni_mese - anno={anno}, mese={mese}")
+        
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("""
-            SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
-                   tipo_analisi, data_prenotazione, orario_prenotazione, operatrice_assegnata
-            FROM prenotazioni
-            WHERE EXTRACT(YEAR FROM data_prenotazione) = %s
-              AND EXTRACT(MONTH FROM data_prenotazione) = %s
-            ORDER BY data_prenotazione ASC, orario_prenotazione ASC
-        """, (anno, mese))
-        prenotazioni = cur.fetchall()
-        cur.close()
-        conn.close()
-        return jsonify({'success': True, 'data': prenotazioni}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        
+        print(f"DEBUG: Executing query...")
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -454,3 +444,9 @@ def server_error(e):
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)),
             debug=os.getenv('FLASK_ENV', 'production') == 'development')
+    
+    except Exception as e:
+        print(f"ERROR in get_prenotazioni_mese: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
