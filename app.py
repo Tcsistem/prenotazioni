@@ -5,7 +5,19 @@ Flask API per gestione prenotazioni e callback
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from datetime import datetime, timedelta
+
+# Configurazione CORS per permettere richieste da GitHub Pages
+cors_config = {
+    "origins": [
+        "https://tcsistem.github.io",
+        "http://localhost:3000",
+        "http://localhost:5000"
+    ],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type"],
+    "supports_credentials": True
+}
+CORS(app, resources={r"/api/*": cors_config, r"/health": cors_config})from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 import psycopg2
@@ -20,91 +32,18 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+# Database connection
 def get_db_connection():
-    db_url = os.getenv('DATABASE_URL')
-    if db_url:
-        conn = psycopg2.connect(db_url)
-    else:
-        conn = psycopg2.connect(
-            host=os.getenv('DB_HOST'),
-            database=os.getenv('DB_NAME'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD'),
-            port=os.getenv('DB_PORT', 5432)
-        )
+    conn = psycopg2.connect(
+        host=os.getenv('DB_HOST'),
+        database=os.getenv('DB_NAME'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        port=os.getenv('DB_PORT', 5432)
+    )
     return conn
 
-def init_db():
-    """Crea le tabelle se non esistono"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    try:
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS callback_richieste (
-                id SERIAL PRIMARY KEY,
-                cliente_nome VARCHAR(100),
-                cliente_cognome VARCHAR(100),
-                cliente_telefono VARCHAR(20),
-                tipo_analisi VARCHAR(100),
-                orario_preferito VARCHAR(50),
-                data_ora_richiesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                stato VARCHAR(50) DEFAULT 'attesa',
-                operatrice_assegnata VARCHAR(100),
-                note TEXT
-            );
-        """)
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS prenotazioni (
-                id SERIAL PRIMARY KEY,
-                cliente_nome VARCHAR(100),
-                cliente_cognome VARCHAR(100),
-                cliente_telefono VARCHAR(20),
-                tipo_analisi VARCHAR(100),
-                data_prenotazione DATE,
-                orario_prenotazione TIME,
-                operatrice_assegnata VARCHAR(100),
-                data_ora_creazione TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                note TEXT
-            );
-        """)
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS medici (
-                id SERIAL PRIMARY KEY,
-                nome VARCHAR(100),
-                specializzazione VARCHAR(100),
-                email VARCHAR(100),
-                orario_inizio VARCHAR(5),
-                orario_fine VARCHAR(5),
-                giorni_lavoro VARCHAR(100)
-            );
-        """)
-
-        # Inserisci medici di prova (solo se la tabella è vuota)
-        cursor.execute("SELECT COUNT(*) FROM medici;")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute("""
-                INSERT INTO medici (nome, specializzazione, email, orario_inizio, orario_fine, giorni_lavoro)
-                VALUES
-                    ('Dr. Rossi', 'Ematologia', 'rossi@anxur.it', '09:00', '13:00', 'Lun-Ven'),
-                    ('Dr. Bianchi', 'Biochimica', 'bianchi@anxur.it', '09:00', '13:00', 'Lun-Ven'),
-                    ('Dr. Verdi', 'Sierologia', 'verdi@anxur.it', '14:00', '18:00', 'Lun-Ven'),
-                    ('Dr. Neri', 'Immunologia', 'neri@anxur.it', '09:00', '13:00', 'Lun-Ven')
-            """)
-
-        conn.commit()
-        print("✅ Tabelle create/verificate con successo")
-    except Exception as e:
-        print(f"❌ Errore creazione tabelle: {e}")
-    finally:
-        cursor.close()
-        conn.close()
-
-# Inizializza il database
-init_db()
-
+# Google Sheets setup
 def get_sheets_client():
     creds_dict = json.loads(os.getenv('GOOGLE_SHEETS_CREDENTIALS', '{}'))
     credentials = Credentials.from_service_account_info(
@@ -113,325 +52,340 @@ def get_sheets_client():
     )
     return gspread.authorize(credentials)
 
+# ==================== CALLBACK ENDPOINTS ====================
+
 @app.route('/api/callbacks', methods=['GET'])
 def list_callbacks():
     """Lista tutti i callback in sospeso"""
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
+
         cur.execute("""
-                    SELECT id, cliente_nome as nome, cliente_cognome as cognome, cliente_telefono as telefono, tipo_analisi, orario_preferito, data_ora_richiesta, stato
-                    FROM callback_richieste
-                    WHERE stato = 'IN_SOSPESO'
-                    ORDER BY data_ora_richiesta ASC
-                    """)
+            SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
+                   tipo_analisi, orario_preferito, data_ora_richiesta, stato
+            FROM callback_richieste
+            WHERE stato = 'IN_SOSPESO'
+            ORDER BY data_ora_richiesta ASC
+        """)
+
         callbacks = cur.fetchall()
         cur.close()
         conn.close()
-        return jsonify({'success': True, 'data': callbacks, 'count': len(callbacks)}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/callbacks', methods=['POST'])
-def create_callback():
-    """Crea un nuovo callback"""
-    try:
-        data = request.json
-        required = ['nome', 'cognome', 'telefono', 'tipo_analisi']
-        if not all(k in data for k in required):
-            return jsonify({'success': False, 'error': 'Campi obbligatori: nome, cognome, telefono, tipo_analisi'}), 400
-
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO callback_richieste
-            (cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi,
-             orario_preferito, stato, data_ora_richiesta)
-            VALUES (%s, %s, %s, %s, %s, 'IN_SOSPESO', NOW())
-            RETURNING id
-        """, (data['nome'], data['cognome'], data['telefono'], data['tipo_analisi'], data.get('orario_preferito', 'qualsiasi')))
-
-        callback_id = cur.fetchone()['id']
-        conn.commit()
-        cur.close()
-        conn.close()
-
-        try:
-            gc = get_sheets_client()
-            sheet = gc.open_by_key(os.getenv('GOOGLE_SHEETS_ID')).sheet1
-            sheet.append_row([
-                datetime.now().strftime('%Y-%m-%d %H:%M'),
-                data['nome'], data['cognome'], data['telefono'],
-                data['tipo_analisi'], data.get('orario_preferito', 'qualsiasi'),
-                '', 'IN_SOSPESO', ''
-            ])
-        except Exception as e:
-            print(f"Google Sheets error: {e}")
-
-        return jsonify({'success': True, 'callback_id': callback_id, 'message': 'Callback creato con successo'}), 201
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/callbacks/<int:callback_id>', methods=['GET'])
-def get_callback(callback_id):
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT * FROM callback_richieste WHERE id = %s", (callback_id,))
-        callback = cur.fetchone()
-        cur.close()
-        conn.close()
-        if not callback:
-            return jsonify({'success': False, 'error': 'Callback non trovato'}), 404
-        return jsonify({'success': True, 'data': callback}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/prenotazioni', methods=['GET'])
-def list_prenotazioni():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("""
-            SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
-                   tipo_analisi, data_prenotazione, orario_prenotazione
-            FROM prenotazioni
-            WHERE data_prenotazione = CURRENT_DATE
-            ORDER BY orario_prenotazione ASC
-        """)
-        prenotazioni = cur.fetchall()
-        cur.close()
-        conn.close()
-        return jsonify({'success': True, 'data': prenotazioni}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/callbacks/<int:callback_id>', methods=['DELETE'])
-def delete_callback(callback_id):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Elimina il callback dal database
-        cursor.execute('DELETE FROM callback_richieste WHERE id = %s', (callback_id,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/callbacks/<int:callback_id>/complete', methods=['POST', 'OPTIONS'])
-def complete_callback(callback_id):
-    """Completa callback (operatrice ha fatto la richiamata)"""
-    if request.method == 'OPTIONS':
-        return '', 204
-
-    try:
-        data = request.json
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            UPDATE callback_richieste
-            SET stato = 'COMPLETATO',
-                note = %s
-            WHERE id = %s
-        """, (data.get('note', ''), callback_id))
-        conn.commit()
-        cur.close()
-        conn.close()
-        # TODO: Cancella riga da Google Sheets
         return jsonify({
             'success': True,
-            'message': 'Callback segnato come completato'
+            'data': callbacks,
+            'count': len(callbacks)
         }), 200
+
     except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
-@app.route('/api/callbacks/completati', methods=['GET'])
-def list_completati():
-    """Lista tutti i callback completati di oggi"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("""
-            SELECT id, cliente_nome as nome, cliente_cognome as cognome,
-                   cliente_telefono as telefono, tipo_analisi,
-                   data_ora_richiesta, stato, note
-            FROM callback_richieste
-            WHERE stato = 'COMPLETATO' AND DATE(data_ora_richiesta) = CURRENT_DATE
-            ORDER BY data_ora_richiesta DESC
-        """)
-        callbacks = cur.fetchall()
-        cur.close()
-        conn.close()
-        return jsonify({'success': True, 'data': callbacks, 'count': len(callbacks)}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/medici', methods=['GET'])
-def list_medici():
-    """Lista tutti i medici"""
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT * FROM medici ORDER BY nome")
-        medici = cur.fetchall()
-        cur.close()
-        conn.close()
-        return jsonify({'success': True, 'data': medici}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/medici', methods=['POST'])
-def create_medico():
-    """Aggiungi un nuovo medico"""
+@app.route('/api/callbacks', methods=['POST'])
+def create_callback():
+    """Crea un nuovo callback (chiamato dal voicebot Wildix)"""
     try:
         data = request.json
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO medici (nome, specializzazione, email, orario_inizio, orario_fine, giorni_lavoro)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            RETURNING id
-        """, (data['nome'], data['specializzazione'], data.get('email'),
-              data['orario_inizio'], data['orario_fine'], data.get('giorni_lavoro', 'Lun-Ven')))
-        medico_id = cur.fetchone()['id']
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({'success': True, 'medico_id': medico_id}), 201
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
 
-@app.route('/api/medici/<int:medico_id>', methods=['PUT'])
-def update_medico(medico_id):
-    """Modifica un medico"""
-    try:
-        data = request.json
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("""
-            UPDATE medici
-            SET nome=%s, specializzazione=%s, email=%s, orario_inizio=%s, orario_fine=%s, giorni_lavoro=%s
-            WHERE id=%s
-        """, (data['nome'], data['specializzazione'], data.get('email'),
-              data['orario_inizio'], data['orario_fine'], data.get('giorni_lavoro'), medico_id))
-        conn.commit()
-        cur.close()
-        conn.close()
-        return jsonify({'success': True}), 200
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/wildix/richiesta-prenotazione', methods=['POST'])
-def wildix_richiesta_prenotazione():
-    """Endpoint per Wildix - riceve richiesta di prenotazione"""
-    print("DEBUG: Richiesta POST a /api/wildix/richiesta-prenotazione")
-    print(f"DEBUG: request.json = {request.json}")
-    try:
-        data = request.json
-        print(f"DEBUG: data ricevuti = {data}")
-        
-        if data is None:
-            print("ERROR: request.json è None!")
-            return jsonify({'success': False, 'error': 'Content-Type deve essere application/json'}), 400
-        
-        nome = data.get('nome')
-        cognome = data.get('cognome')
-        telefono = data.get('telefono')
-        tipo_analisi = data.get('tipo_analisi')
-        
-        print(f"DEBUG: nome={nome}, cognome={cognome}, telefono={telefono}, tipo_analisi={tipo_analisi}")
-        
-        if not all([nome, cognome, telefono, tipo_analisi]):
-            return jsonify({'success': False, 'error': 'Dati incompleti'}), 400
-        
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        # Cerca un medico con quella specializzazione
-        cur.execute("""
-            SELECT * FROM medici 
-            WHERE LOWER(specializzazione) = LOWER(%s)
-            LIMIT 1
-        """, (tipo_analisi,))
-        
-        medico = cur.fetchone()
-        
-        if not medico:
-            # Nessun medico disponibile - crea callback in sospeso
-            cur.execute("""
-                INSERT INTO callback_richieste
-                (cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi, stato, data_ora_richiesta)
-                VALUES (%s, %s, %s, %s, 'IN_SOSPESO', NOW())
-                RETURNING id
-            """, (nome, cognome, telefono, tipo_analisi))
-            
-            callback_id = cur.fetchone()['id']
-            conn.commit()
-            cur.close()
-            conn.close()
-            
+        # Validazione
+        required = ['nome', 'cognome', 'telefono', 'tipo_analisi']
+        if not all(k in data for k in required):
             return jsonify({
                 'success': False,
-                'message': 'Nessun medico disponibile. Un operatrice ti richiamerà presto.',
-                'callback_id': callback_id
-            }), 200
-        
-        # Medico trovato - crea prenotazione per domani alle 10:00
-        data_prenotazione = datetime.now().date() + timedelta(days=1)
-        orario_prenotazione = '10:00'
-        
+                'error': 'Campi obbligatori: nome, cognome, telefono, tipo_analisi'
+            }), 400
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Insert callback
         cur.execute("""
-            INSERT INTO prenotazioni
-            (cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi, 
-             data_prenotazione, orario_prenotazione, operatrice_assegnata, data_ora_creazione)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            INSERT INTO callback_richieste
+            (cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi,
+             orario_preferito, stato, data_ora_richiesta)
+            VALUES (%s, %s, %s, %s, %s, 'IN_SOSPESO', NOW())
             RETURNING id
-        """, (nome, cognome, telefono, tipo_analisi, data_prenotazione, orario_prenotazione, medico['nome']))
-        
-        prenotazione_id = cur.fetchone()['id']
+        """, (
+            data['nome'],
+            data['cognome'],
+            data['telefono'],
+            data['tipo_analisi'],
+            data.get('orario_preferito', 'qualsiasi')
+        ))
+
+        callback_id = cur.fetchone()[0]
+        conn.commit()
+
+        # Aggiungi a Google Sheets (callback list)
+        try:
+            gc = get_sheets_client()
+            sheet = gc.open_by_key(os.getenv('GOOGLE_SHEETS_ID')).sheet1
+
+            sheet.append_row([
+                datetime.now().strftime('%Y-%m-%d %H:%M'),
+                data['nome'],
+                data['cognome'],
+                data['telefono'],
+                data['tipo_analisi'],
+                data.get('orario_preferito', 'qualsiasi'),
+                '',  # operatrice_assegnata
+                'IN_SOSPESO',
+                ''   # note
+            ])
+        except Exception as e:
+            print(f"Google Sheets error: {e}")
+
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'callback_id': callback_id,
+            'message': 'Callback creato con successo'
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/callbacks/<int:callback_id>', methods=['GET'])
+def get_callback(callback_id):
+    """Ottieni dettagli callback"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT * FROM callback_richieste WHERE id = %s
+        """, (callback_id,))
+
+        callback = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not callback:
+            return jsonify({'success': False, 'error': 'Callback non trovato'}), 404
+
+        return jsonify({
+            'success': True,
+            'data': callback
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/callbacks/<int:callback_id>/complete', methods=['POST', 'OPTIONS'])
+def complete_callback(callback_id):
+    """Completa callback (operatrice ha fatto la richiamata)"""
+    try:
+        data = request.json
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            UPDATE callback_richieste
+            SET stato = 'COMPLETATO',
+                data_ora_callback_prevista = NOW(),
+                note = %s
+            WHERE id = %s
+        """, (data.get('note', ''), callback_id))
+
         conn.commit()
         cur.close()
         conn.close()
-        
+
+        # TODO: Cancella riga da Google Sheets
+
         return jsonify({
             'success': True,
-            'message': f'Prenotazione confermata con {medico["nome"]} il {data_prenotazione} alle {orario_prenotazione}',
-            'prenotazione_id': prenotazione_id,
-            'medico': medico['nome'],
-            'data': str(data_prenotazione),
-            'orario': orario_prenotazione
-        }), 201
-        
-    except Exception as e:
-        print(f"ERROR in wildix_richiesta_prenotazione: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+            'message': 'Callback segnato come completato'
+        }), 200
 
-@app.route('/api/prenotazioni/mese', methods=['GET'])
-def get_prenotazioni_mese():
-    """Restituisce tutte le prenotazioni di un mese specifico"""
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/callbacks/<int:callback_id>', methods=['DELETE'])
+def delete_callback(callback_id):
+    """Cancella callback (completato o non raggiungibile)"""
     try:
-        anno = request.args.get('anno', datetime.now().year, type=int)
-        mese = request.args.get('mese', datetime.now().month, type=int)
-        
-        print(f"DEBUG: get_prenotazioni_mese - anno={anno}, mese={mese}")
-        
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            DELETE FROM callback_richieste WHERE id = %s
+        """, (callback_id,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Callback cancellato'
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ==================== PRENOTAZIONI ENDPOINTS ====================
+
+@app.route('/api/prenotazioni', methods=['GET'])
+def list_prenotazioni():
+    """Lista prenotazioni del giorno"""
+    try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
-        print(f"DEBUG: Executing query...")
+
+        cur.execute("""
+            SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
+                   tipo_analisi, data_prenotazione, orario_prenotazione, stato
+            FROM prenotazioni
+            WHERE data_prenotazione = CURRENT_DATE
+            AND stato = 'CONFERMATA'
+            ORDER BY orario_prenotazione ASC
+        """)
+
+        prenotazioni = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': prenotazioni
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/prenotazioni', methods=['POST'])
+def create_prenotazione():
+    """Crea nuova prenotazione"""
+    try:
+        data = request.json
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            INSERT INTO prenotazioni
+            (cliente_nome, cliente_cognome, cliente_telefono, cliente_email,
+             tipo_analisi, data_prenotazione, orario_prenotazione, stato)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'CONFERMATA')
+            RETURNING id
+        """, (
+            data['nome'],
+            data['cognome'],
+            data['telefono'],
+            data.get('email', ''),
+            data['tipo_analisi'],
+            data['data'],
+            data['ora']
+        ))
+
+        prenotazione_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'prenotazione_id': prenotazione_id
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ==================== WILDIX WEBHOOK ====================
+
+@app.route('/webhook/wildix', methods=['POST'])
+def wildix_webhook():
+    """Ricevi dati dal voicebot Wildix"""
+    try:
+        data = request.json
+
+        # Tipo di evento
+        event_type = data.get('event_type')
+
+        if event_type == 'call_ended':
+            # Chiamata terminata
+            print(f"[WILDIX] Call ended: {data}")
+
+        elif event_type == 'callback_requested':
+            # Cliente ha richiesto callback
+            callback_data = {
+                'nome': data.get('cliente_nome'),
+                'cognome': data.get('cliente_cognome'),
+                'telefono': data.get('cliente_telefono'),
+                'tipo_analisi': data.get('tipo_analisi'),
+                'orario_preferito': data.get('orario_preferito', 'qualsiasi')
+            }
+            # Crea callback via API interna
+            create_callback_internal(callback_data)
+
+        return jsonify({'success': True}), 200
+
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def create_callback_internal(data):
+    """Helper interno per creare callback"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            INSERT INTO callback_richieste
+            (cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi,
+             orario_preferito, stato, data_ora_richiesta)
+            VALUES (%s, %s, %s, %s, %s, 'IN_SOSPESO', NOW())
+        """, (
+            data['nome'],
+            data['cognome'],
+            data['telefono'],
+            data['tipo_analisi'],
+            data.get('orario_preferito', 'qualsiasi')
+        ))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error creating callback: {e}")
+
+# ==================== HEALTH CHECK ====================
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()}), 200
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'ok',
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
+# ==================== ERROR HANDLERS ====================
 
 @app.errorhandler(404)
 def not_found(e):
@@ -442,11 +396,8 @@ def server_error(e):
     return jsonify({'error': 'Errore server interno'}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)),
-            debug=os.getenv('FLASK_ENV', 'production') == 'development')
-    
-    except Exception as e:
-        print(f"ERROR in get_prenotazioni_mese: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)}), 500
+    app.run(
+        host='0.0.0.0',
+        port=int(os.getenv('PORT', 5000)),
+        debug=os.getenv('FLASK_ENV', 'production') == 'development'
+    )
