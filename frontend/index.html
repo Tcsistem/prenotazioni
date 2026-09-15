@@ -48,26 +48,12 @@
             </div>
         </header>
 
-        <main>
+                <main>
             <div id="tabs">
                 <button onclick="showTab('callbacks')">📞 Callback in Sospeso</button>
                 <button onclick="showTab('prenotazioni')">📅 Prenotazioni</button>
                 <button onclick="showTab('completati')">✅ Storico Richiamate</button>
-                <button onclick="showTab('calendario')" style="padding: 10px 15px; background: #e9ecef; border: none; border-radius: 5px; cursor: pointer; margin: 5px;">📅 Calendario</button>
-                <!-- TAB: CALENDARIO -->
-<div id="tab-calendario" class="tab-content" style="display: none;">
-    <h2>📅 Calendario Prenotazioni</h2>
-    
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <button onclick="prevMese()" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">← Precedente</button>
-        <h3 id="mese-anno" style="margin: 0;"></h3>
-        <button onclick="nextMese()" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Successivo →</button>
-    </div>
-    
-    <div id="calendario" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 20px;"></div>
-    
-    <div id="dettagli-giorno" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9f9f9;"></div>
-</div>
+                <button onclick="showTab('calendario')">📅 Calendario</button>
             </div>
 
             <div id="callbacks-tab" class="tab-content">
@@ -83,6 +69,20 @@
             <div id="completati-tab" class="tab-content" style="display:none;">
                 <h2>Storico Richiamate Oggi</h2>
                 <div id="completati-list"></div>
+            </div>
+
+            <div id="calendario-tab" class="tab-content" style="display:none;">
+                <h2>📅 Calendario Prenotazioni</h2>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <button onclick="prevMese()" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">← Precedente</button>
+                    <h3 id="mese-anno" style="margin: 0;"></h3>
+                    <button onclick="nextMese()" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Successivo →</button>
+                </div>
+                
+                <div id="calendario" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 20px;"></div>
+                
+                <div id="dettagli-giorno" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9f9f9;"></div>
             </div>
         </main>
 
