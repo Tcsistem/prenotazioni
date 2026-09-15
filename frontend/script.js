@@ -19,31 +19,37 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupModalListeners() {
     const modalCallback = document.getElementById('modal-callback');
     const modalTest = document.getElementById('modal-test-callback');
+    const modalConvert = document.getElementById('modal-convert-callback');
     const testBtn = document.getElementById('test-callback-btn');
     const formTest = document.getElementById('form-test-callback');
     const formCallback = document.getElementById('form-callback');
-    
+    const formConvert = document.getElementById('form-convert-callback');
+
     if (testBtn) {
         testBtn.addEventListener('click', () => {
             if (modalTest) modalTest.style.display = 'block';
         });
     }
-    
+
     if (formTest) {
         formTest.addEventListener('submit', createTestCallback);
     }
-    
+
     if (formCallback) {
         formCallback.addEventListener('submit', submitCallbackComplete);
     }
-    
+
+    if (formConvert) {
+        formConvert.addEventListener('submit', submitCallbackConvert);
+    }
+
     // Chiudi modal
     document.querySelectorAll('.modal-close, .modal-close-btn').forEach(el => {
         el.addEventListener('click', function() {
             document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
         });
     });
-    
+
     // Chiudi modal cliccando fuori
     window.addEventListener('click', function(event) {
         if (event.target.classList.contains('modal')) {
@@ -72,6 +78,7 @@ async function loadCallbacks() {
                     Orario preferito: ${callback.orario_preferito}<br>
                     <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
                     <div style="margin-top: 10px;">
+                        <button class="btn btn-success" onclick="openConvertModal(${callback.id}, '${callback.nome}', '${callback.cognome}')">↔️ Converti a Prenotazione</button>
                         <button class="btn btn-primary" onclick="openCompleteModal(${callback.id}, '${callback.nome}', '${callback.cognome}', '${callback.telefono}')">✓ Completato</button>
                         <button class="btn btn-danger" onclick="deleteCallback(${callback.id})">🗑️ Elimina</button>
                     </div>
@@ -139,10 +146,30 @@ async function loadCompletati() {
 function openCompleteModal(callbackId, nome, cognome, telefono) {
     const modal = document.getElementById('modal-callback');
     if (!modal) return;
-    
+
     document.getElementById('modal-cliente-nome').textContent = `${nome} ${cognome}`;
     document.getElementById('modal-cliente-telefono').textContent = telefono;
     document.getElementById('form-callback').dataset.callbackId = callbackId;
+    modal.style.display = 'block';
+}
+
+function openConvertModal(callbackId, nome, cognome) {
+    const modal = document.getElementById('modal-convert-callback');
+    if (!modal) return;
+
+    // Imposta il cliente nel modal
+    document.getElementById('convert-cliente-nome').textContent = `${nome} ${cognome}`;
+    document.getElementById('form-convert-callback').dataset.callbackId = callbackId;
+
+    // Imposta data minima a oggi
+    const today = new Date();
+    const minDate = today.toISOString().split('T')[0];
+    document.getElementById('convert-data').min = minDate;
+    document.getElementById('convert-data').value = minDate;
+
+    // Imposta orario di default a 09:00
+    document.getElementById('convert-orario').value = '09:00';
+
     modal.style.display = 'block';
 }
 
@@ -150,14 +177,14 @@ async function submitCallbackComplete(e) {
     e.preventDefault();
     const callbackId = document.getElementById('form-callback').dataset.callbackId;
     const note = document.getElementById('modal-note').value;
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/callbacks/${callbackId}/complete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ note })
         });
-        
+
         if (response.ok) {
             console.log('[SUCCESS] ✅ Callback completato');
             document.getElementById('modal-callback').style.display = 'none';
@@ -167,6 +194,45 @@ async function submitCallbackComplete(e) {
         }
     } catch (error) {
         console.error('[ERROR] ❌ Errore:', error.message);
+    }
+}
+
+async function submitCallbackConvert(e) {
+    e.preventDefault();
+    const callbackId = document.getElementById('form-convert-callback').dataset.callbackId;
+    const data = document.getElementById('convert-data').value;
+    const orario = document.getElementById('convert-orario').value;
+
+    if (!data || !orario) {
+        alert('❌ Seleziona data e orario');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/callbacks/${callbackId}/to-prenotazione`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                data_prenotazione: data,
+                orario_prenotazione: orario
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('[SUCCESS] ✅ Callback convertito in prenotazione');
+            document.getElementById('modal-convert-callback').style.display = 'none';
+            document.getElementById('form-convert-callback').reset();
+            loadCallbacks();
+            loadPrenotazioni();
+            alert('✅ Callback convertito in prenotazione con successo!');
+        } else {
+            const error = await response.json();
+            alert('❌ Errore: ' + (error.error || 'Errore sconosciuto'));
+        }
+    } catch (error) {
+        console.error('[ERROR] ❌ Errore:', error.message);
+        alert('❌ Errore nel convertire il callback');
     }
 }
 
