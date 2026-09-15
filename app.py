@@ -415,6 +415,30 @@ def wildix_richiesta_prenotazione():
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/prenotazioni/mese', methods=['GET'])
+def get_prenotazioni_mese():
+    """Restituisce tutte le prenotazioni di un mese specifico"""
+    try:
+        anno = request.args.get('anno', datetime.now().year, type=int)
+        mese = request.args.get('mese', datetime.now().month, type=int)
+        
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("""
+            SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
+                   tipo_analisi, data_prenotazione, orario_prenotazione, operatrice_assegnata
+            FROM prenotazioni
+            WHERE EXTRACT(YEAR FROM data_prenotazione) = %s
+              AND EXTRACT(MONTH FROM data_prenotazione) = %s
+            ORDER BY data_prenotazione ASC, orario_prenotazione ASC
+        """, (anno, mese))
+        prenotazioni = cur.fetchall()
+        cur.close()
+        conn.close()
+        return jsonify({'success': True, 'data': prenotazioni}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok', 'timestamp': datetime.now().isoformat()}), 200
