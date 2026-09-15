@@ -300,7 +300,7 @@ def create_medico():
             RETURNING id
         """, (data['nome'], data['specializzazione'], data.get('email'),
               data['orario_inizio'], data['orario_fine'], data.get('giorni_lavoro', 'Lun-Ven')))
-        medico_id = cur.fetchone()[0]
+        medico_id = cur.fetchone()['id']
         conn.commit()
         cur.close()
         conn.close()
@@ -395,7 +395,7 @@ def wildix_richiesta_prenotazione():
             RETURNING id
         """, (nome, cognome, telefono, tipo_analisi, data_prenotazione, orario_prenotazione, medico['nome']))
         
-        prenotazione_id = cur.fetchone()[0]
+        prenotazione_id = cur.fetchone()['id']
         conn.commit()
         cur.close()
         conn.close()
