@@ -331,6 +331,18 @@ def update_medico(medico_id):
 @app.route('/api/wildix/richiesta-prenotazione', methods=['POST'])
 def wildix_richiesta_prenotazione():
     """Endpoint per Wildix - riceve richiesta di prenotazione"""
+    print("DEBUG: Richiesta POST a /api/wildix/richiesta-prenotazione")
+    print(f"DEBUG: request.json = {request.json}")
+    try:
+        data = request.json
+        print(f"DEBUG: data ricevuti = {data}")
+        if data is None:
+            print("ERROR: request.json è None!")
+            return jsonify({'success': False, 'error': 'Content-Type deve essere application/json'}), 400
+
+@app.route('/api/wildix/richiesta-prenotazione', methods=['POST'])
+def wildix_richiesta_prenotazione():
+    """Endpoint per Wildix - riceve richiesta di prenotazione"""
     try:
         data = request.json
         nome = data.get('nome')
