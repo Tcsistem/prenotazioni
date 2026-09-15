@@ -235,3 +235,157 @@ function updateTime() {
         timeDisplay.textContent = new Date().toLocaleTimeString('it-IT');
     }
 }
+
+// ====== CALENDARIO ======
+let currentDate = new Date();
+
+function initCalendario() {
+    renderCalendario();
+    loadCalendarioData();
+}
+
+function renderCalendario() {
+    const anno = currentDate.getFullYear();
+    const mese = currentDate.getMonth();
+    
+    // Aggiorna titolo
+    const mesi = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+                  'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+    document.getElementById('mese-anno').textContent = `${mesi[mese]} ${anno}`;
+    
+    // Intestazioni dei giorni della settimana
+    const giorni_settimana = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+    const calendario = document.getElementById('calendario');
+    calendario.innerHTML = '';
+    
+    // Aggiungi intestazioni
+    giorni_settimana.forEach(g => {
+        const header = document.createElement('div');
+        header.textContent = g;
+        header.style.cssText = 'font-weight: bold; text-align: center; padding: 10px; background: #e9ecef; border-radius: 5px;';
+        calendario.appendChild(header);
+    });
+    
+    // Primo giorno del mese
+    const primo = new Date(anno, mese, 1);
+    let primoGiornoSettimana = primo.getDay() - 1; // 0=Lunedì
+    if (primoGiornoSettimana === -1) primoGiornoSettimana = 6; // Domenica
+    
+    // Numero di giorni nel mese
+    const numGiorni = new Date(anno, mese + 1, 0).getDate();
+    
+    // Aggiungi giorni vuoti all'inizio
+    for (let i = 0; i < primoGiornoSettimana; i++) {
+        const vuoto = document.createElement('div');
+        calendario.appendChild(vuoto);
+    }
+    
+    // Aggiungi giorni del mese
+    for (let g = 1; g <= numGiorni; g++) {
+        const giorno = document.createElement('div');
+        giorno.id = `giorno-${g}`;
+        giorno.textContent = g;
+        giorno.style.cssText = `
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            background: white;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: background 0.3s;
+        `;
+        giorno.onclick = () => mostraDettagliGiorno(g);
+        calendario.appendChild(giorno);
+    }
+}
+
+function loadCalendarioData() {
+    const anno = currentDate.getFullYear();
+    const mese = currentDate.getMonth() + 1;
+    
+    fetch(`${API_BASE_URL}/api/prenotazioni/mese?anno=${anno}&mese=${mese}`)
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                // Raggruppa prenotazioni per data
+                const prenotazioniPerGiorno = {};
+                res.data.forEach(p => {
+                    const data = new Date(p.data_prenotazione).getDate();
+                    if (!prenotazioniPerGiorno[data]) {
+                        prenotazioniPerGiorno[data] = [];
+                    }
+                    prenotazioniPerGiorno[data].push(p);
+                });
+                
+                // Colora i giorni
+                for (const [giorno, prenotazioni] of Object.entries(prenotazioniPerGiorno)) {
+                    const elem = document.getElementById(`giorno-${giorno}`);
+                    if (elem) {
+                        elem.style.background = '#ffcccc'; // Rosso chiaro
+                        elem.style.fontWeight = 'bold';
+                        
+                        // Mostra conteggio prenotazioni
+                        elem.innerHTML = `<strong>${giorno}</strong><br><small>${prenotazioni.length} prenotazioni</small>`;
+                    }
+                }
+                
+                // Salva i dati globali
+                window.prenotazioniMese = prenotazioniPerGiorno;
+            }
+        })
+        .catch(e => console.error('Errore calendario:', e));
+}
+
+function mostraDettagliGiorno(giorno) {
+    const anno = currentDate.getFullYear();
+    const mese = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const giornoStr = String(giorno).padStart(2, '0');
+    const dataCompleta = `${anno}-${mese}-${giornoStr}`;
+    
+    const dettagli = document.getElementById('dettagli-giorno');
+    
+    if (!window.prenotazioniMese || !window.prenotazioniMese[giorno]) {
+        dettagli.innerHTML = `<p><strong>${dataCompleta}</strong> - Nessuna prenotazione (Giorno libero ✅)</p>`;
+        return;
+    }
+    
+    const prenotazioni = window.prenotazioniMese[giorno];
+    let html = `<h4>${dataCompleta} - ${prenotazioni.length} prenotazione/i</h4><table style="width: 100%; border-collapse: collapse;">`;
+    html += '<tr style="background: #e9ecef;"><th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Orario</th><th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Cliente</th><th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Analisi</th><th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Medico</th></tr>';
+    
+    prenotazioni.forEach(p => {
+        html += `<tr>
+            <td style="padding: 8px; border: 1px solid #ddd;">${p.orario_prenotazione}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${p.cliente_nome} ${p.cliente_cognome}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${p.tipo_analisi}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${p.operatrice_assegnata || '-'}</td>
+        </tr>`;
+    });
+    
+    html += '</table>';
+    dettagli.innerHTML = html;
+}
+
+function prevMese() {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    renderCalendario();
+    loadCalendarioData();
+}
+
+function nextMese() {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    renderCalendario();
+    loadCalendarioData();
+}
+
+// Inizializza quando carica la pagina
+document.addEventListener('DOMContentLoaded', () => {
+    // Il resto del codice iniziale...
+    // Aggiungi questa riga:
+    initCalendario();
+});
