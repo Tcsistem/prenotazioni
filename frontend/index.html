@@ -1,179 +1,940 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Centro Anxur - Dashboard Operatrici</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-#tabs {
-    display: flex;
-    gap: 10px;
-    margin: 20px 0;
-    border-bottom: 2px solid #ddd;
-}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cronoprogramma</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f0ef;color:#1a1a18;font-size:14px}
+.hdr{background:#1a1a18;color:#fff;padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.hdr-title{font-size:16px;font-weight:500}
+.hdr-sub{font-size:11px;color:#aaa;margin-top:1px}
+.tabs{background:#fff;border-bottom:1px solid #e0e0de;display:flex;padding:0 1.5rem;overflow-x:auto}
+.tab{padding:11px 18px;background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-size:13px;color:#888;font-family:inherit;white-space:nowrap}
+.tab.on{color:#1a1a18;border-bottom:2px solid #1a1a18;font-weight:500}
+.btn{padding:7px 14px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;border:none}
+.btn-w{background:#fff;color:#1a1a18;border:1px solid #ddd}.btn-w:hover{background:#f5f5f4}
+.btn-d{background:#1a1a18;color:#fff}.btn-d:hover{background:#333}
+.btn-r{background:none;color:#dc2626;border:none;font-size:12px;cursor:pointer;padding:3px 6px}
+.btn-e{background:none;color:#2563eb;border:none;font-size:12px;cursor:pointer;padding:3px 6px}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-warn{background:#f59e0b;color:#fff;border:none}.btn-warn:hover{background:#d97706}
+.btn:disabled{opacity:.4;cursor:default}
+.page{padding:1.25rem 1.5rem;max-width:1400px;margin:0 auto}
+.narrow{max-width:820px;margin:0 auto;padding:1.25rem 1.5rem}
+.row{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:8px;flex-wrap:wrap}
+.spinner{width:22px;height:22px;border:2px solid #e0e0de;border-top:2px solid #1a1a18;border-radius:50%;animation:spin .8s linear infinite;margin:4rem auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:3rem;color:#aaa;font-size:13px}
+.week-nav{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #e0e0de;border-radius:8px;padding:4px 8px}
+.week-nav span{font-size:13px;font-weight:500;min-width:150px;text-align:center}
+.week-nav button{background:none;border:none;cursor:pointer;font-size:18px;color:#555;padding:1px 6px;border-radius:5px;line-height:1}
+.week-nav button:hover{background:#f0f0ef}
 
-#tabs button {
-    padding: 10px 20px;
-    background: #f0f0f0;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-}
+/* FILTRI */
+.fg-filter{display:flex;flex-direction:column;gap:3px}
+.fg-filter label{font-size:10px;color:#aaa;font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.fg-filter select{padding:5px 10px;border:1px solid #e0e0de;border-radius:7px;font-size:12px;font-family:inherit;background:#fff;color:#1a1a18;cursor:pointer;min-width:140px}
+.fg-filter select:focus{outline:none;border-color:#1a1a18}
 
-#tabs button:hover {
-    background: #e0e0e0;
-}
+/* AVVISO COMPLETEZZA */
+.alert-box{background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:.85rem 1.1rem;margin-bottom:1rem;display:none}
+.alert-box.show{display:block}
+.alert-title{font-weight:500;font-size:13px;color:#92400e;margin-bottom:6px}
+.alert-list{font-size:12px;color:#78350f;line-height:1.9}
 
-.tab-content {
-    padding: 20px 0;
-}
+/* GRIGLIA */
+.grid-wrap{overflow-x:auto;margin-top:.5rem}
+.grid{border-collapse:collapse;width:100%;min-width:860px}
+.grid th{background:#1a1a18;color:#fff;padding:9px 10px;font-weight:500;font-size:12px;text-align:left;border:1px solid #2a2a28;white-space:nowrap}
+.grid th.day{text-align:center;min-width:150px}
+.grid td{border:1px solid #e0e0de;vertical-align:top;background:#fff}
+.grid td.info{background:#fafaf9;padding:8px 10px;min-width:110px;max-width:150px}
+.grid td.day-cell{padding:6px;min-width:150px}
+.can-name{font-weight:500;font-size:13px;margin-bottom:3px}
+.tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500;margin:1px 1px 0 0}
+.tag-c{background:#e0e7ff;color:#3730a3}
+.tag-m{background:#fef3c7;color:#92400e}
+.tag-a{background:#f0fdf4;color:#166534}
+.tag-p{background:#fef9c3;color:#713f12}
+.tag-x{background:#fee2e2;color:#991b1b}
 
-.callback-item {
-    background: #f9f9f9;
-    padding: 15px;
-    margin: 10px 0;
-    border-left: 4px solid #4CAF50;
-    border-radius: 4px;
+/* CHIP */
+.chip{display:flex;align-items:center;gap:5px;background:#f0f0ef;border-radius:6px;padding:4px 7px;margin-bottom:3px;font-size:12px}
+.chip-av{width:22px;height:22px;border-radius:50%;background:#dbeafe;color:#1e40af;font-weight:700;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chip-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.chip-rm{background:none;border:none;color:#bbb;cursor:pointer;font-size:15px;line-height:1;padding:0 2px;flex-shrink:0}
+.chip-rm:hover{color:#dc2626}
+.cell-sel{width:100%;font-size:11px;padding:4px;border:1px dashed #ccc;border-radius:6px;background:#fff;color:#888;cursor:pointer;margin-top:3px;font-family:inherit}
+.cell-sel:focus{outline:none;border-color:#1a1a18;color:#1a1a18}
+.cell-sel.loading{opacity:.5;pointer-events:none}
+.cell-input{width:100%;font-size:11px;padding:4px 6px;border:1px solid #e0e0de;border-radius:6px;background:#fff;color:#1a1a18;margin-top:3px;font-family:inherit}
+.cell-input:focus{outline:none;border-color:#1a1a18}
+.grid-mezzo,.grid-can{margin-top:3px;font-size:11px;padding:4px;border:1px solid #e0e0de;border-radius:6px;background:#fff;color:#1a1a18;width:100%}
+.grid-mezzo:focus,.grid-can:focus{outline:none;border-color:#1a1a18}
+.print-only{display:none}
+
+/* FORM */
+.form-panel{background:#f5f5f4;border:1px solid #e0e0de;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;color:#666;font-weight:500}
+input,select{padding:8px 10px;border:1px solid #ddd;border-radius:8px;font-size:13px;width:100%;font-family:inherit;background:#fff;color:#1a1a18}
+input:focus,select:focus{outline:none;border-color:#1a1a18}
+
+/* LIST CARD con pannello modifica */
+.list-card{background:#fff;border:1px solid #e0e0de;border-radius:10px;margin-bottom:7px;overflow:hidden}
+.list-card-main{padding:.85rem 1.1rem;display:flex;align-items:center;gap:12px}
+.list-av{width:38px;height:38px;border-radius:50%;background:#dbeafe;color:#1e40af;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.list-av.c{background:#fef3c7;color:#92400e;border-radius:9px;font-size:10px;text-align:center;line-height:1.2;padding:2px}
+.list-av.m{background:#fce7f3;color:#9d174d;border-radius:9px;font-size:18px;display:flex;align-items:center;justify-content:center}
+.edit-panel{display:none;padding:.85rem 1.1rem;border-top:1px solid #f0f0ef;background:#fafaf9}
+.edit-panel.open{display:block}
+
+/* VISTA DIPENDENTE */
+.worker-hdr{background:#1a1a18;color:#fff;border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;gap:14px}
+.worker-av{width:50px;height:50px;border-radius:50%;background:#3b82f6;color:#fff;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.day-card{background:#fff;border:1px solid #e0e0de;border-radius:11px;margin-bottom:9px;overflow:hidden}
+.day-head{padding:.7rem 1.1rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0f0ef}
+.day-head .wd{font-weight:500}
+.day-head .dt{font-size:12px;color:#888}
+.day-body{padding:.7rem 1.1rem}
+.site-row{display:flex;gap:10px;align-items:flex-start;padding:.45rem 0;border-bottom:1px solid #f5f5f4}
+.site-row:last-child{border:none}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.sname{font-weight:500;font-size:13px}
+.stags{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.day-off{font-size:13px;color:#bbb;padding:.2rem 0}
+
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1a1a18;color:#fff;padding:9px 15px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:999}
+.toast.show{opacity:1}
+@media(max-width:600px){.form-row,.form-row3{grid-template-columns:1fr}}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;font-size:9px}
+  .hdr,.tabs,.no-print,.cell-sel,.alert-box{display:none!important}
+  .page{padding:0;max-width:100%}
+  #mc,#v-piano{display:block!important}
+  #v-dip,#v-can,#v-mez,#v-worker{display:none!important}
+  .grid-wrap{overflow:visible}
+  .grid{width:100%;font-size:8.5px;table-layout:fixed}
+  .grid th{padding:5px 4px;font-size:8px}
+  .grid th.day{min-width:0}
+  .grid td.info{padding:4px 5px;min-width:0;max-width:none;word-break:break-word}
+  .grid td.day-cell{padding:3px}
+  .tag{font-size:7px;padding:1px 4px}
+  .chip{padding:2px 4px;margin-bottom:2px;font-size:8px;gap:3px}
+  .chip-av{width:16px;height:16px;font-size:7px}
+  .chip-rm{display:none}
+  .grid-mezzo,.grid-can,.grid-comm,.cell-input{display:none!important}
+  .print-only{display:inline!important}
+  #print-title{display:block!important;font-size:13px;font-weight:600;margin-bottom:6px}
 }
-    </style>
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📞 Centro Analisi Anxur - Dashboard Operatrici</h1>
-            <div class="status">
-                <span id="status-badge" class="badge badge-online">● Online</span>
-                <span id="time-display" class="time"></span>
-            </div>
-        </header>
 
-                <main>
-            <div id="tabs">
-                <button onclick="showTab('callbacks')">📞 Callback in Sospeso</button>
-                <button onclick="showTab('prenotazioni')">📅 Prenotazioni</button>
-                <button onclick="showTab('completati')">✅ Storico Richiamate</button>
-                <button onclick="showTab('calendario')">📅 Calendario</button>
-            </div>
+<div class="hdr">
+  <div>
+    <div class="hdr-title">Cronoprogramma</div>
+    <div class="hdr-sub" id="ss">Caricamento...</div>
+  </div>
+  <div class="no-print">
+    <button onclick="window.print()" class="btn btn-w btn-sm">🖨 Stampa</button>
+  </div>
+</div>
 
-            <div id="callbacks-tab" class="tab-content">
-                <h2>Callback in Sospeso</h2>
-                <div id="callbacks-list"></div>
-            </div>
+<div class="tabs no-print">
+  <button id="t-piano"  class="tab on"  onclick="go('piano')">📅 Pianificazione</button>
+  <button id="t-dip"    class="tab"     onclick="go('dip')">👷 Dipendenti</button>
+  <button id="t-can"    class="tab"     onclick="go('can')">🏗 Cantieri</button>
+  <button id="t-mez"    class="tab"     onclick="go('mez')">[Auto] Mezzi</button>
+  <button id="t-worker" class="tab"     onclick="go('worker')">👤 Vista dipendente</button>
+</div>
 
-            <div id="prenotazioni-tab" class="tab-content" style="display:none;">
-                <h2>Prenotazioni Odierne</h2>
-                <div id="prenotazioni-list"></div>
-            </div>
+<div id="lv" style="margin:4rem auto;max-width:80px"><div class="spinner"></div></div>
+<div id="ev" style="display:none;text-align:center;padding:3rem">
+  <p style="color:#dc2626;margin-bottom:1rem" id="em">Errore</p>
+  <button onclick="boot()" class="btn btn-w">Riprova</button>
+</div>
 
-            <div id="completati-tab" class="tab-content" style="display:none;">
-                <h2>Storico Richiamate Oggi</h2>
-                <div id="completati-list"></div>
-            </div>
+<div id="mc" style="display:none">
 
-            <div id="calendario-tab" class="tab-content" style="display:none;">
-                <h2>📅 Calendario Prenotazioni</h2>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <button onclick="prevMese()" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">← Precedente</button>
-                    <h3 id="mese-anno" style="margin: 0;"></h3>
-                    <button onclick="nextMese()" style="padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Successivo →</button>
-                </div>
-                
-                <div id="calendario" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-bottom: 20px;"></div>
-                
-                <div id="dettagli-giorno" style="border: 1px solid #ddd; padding: 15px; border-radius: 5px; background: #f9f9f9;"></div>
-            </div>
-        </main>
-
-        <footer>
-            <p>Centro Analisi Anxur © 2026 | Voicebot Tc sistem Demo</p>
-        </footer>
-    </div>
-
-    <!-- MODAL: Callback Completato -->
-    <div id="modal-callback" class="modal">
-        <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <h3>✅ Callback Completato</h3>
-            <form id="form-callback">
-                <div class="form-group">
-                    <label>Cliente:</label>
-                    <p id="modal-cliente-nome" class="form-value"></p>
-                </div>
-                <div class="form-group">
-                    <label>Telefono:</label>
-                    <p id="modal-cliente-telefono" class="form-value"></p>
-                </div>
-                <div class="form-group">
-                    <label>Note (opzionale):</label>
-                    <textarea id="modal-note" placeholder="Es: Prenotato per lunedì 9:30"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Salva e Completa</button>
-                    <button type="button" class="btn btn-secondary modal-close-btn">Annulla</button>
-                </div>
-            </form>
+  <!-- PIANIFICAZIONE -->
+  <div id="v-piano" class="page">
+    <div id="print-title" style="display:none"></div>
+    <div class="row no-print">
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="week-nav">
+          <button onclick="prevWeek()">&#8592;</button>
+          <span id="week-label">-</span>
+          <button onclick="nextWeek()">&#8594;</button>
         </div>
-    </div>
-
-    <!-- MODAL: Nuovo Callback Test -->
-    <div id="modal-test-callback" class="modal">
-        <div class="modal-content">
-            <span class="modal-close">&times;</span>
-            <h3>🧪 Test Callback (Simulazione Voicebot)</h3>
-            <form id="form-test-callback">
-                <div class="form-group">
-                    <label>Nome Cliente:</label>
-                    <input type="text" id="test-nome" name="nome" placeholder="Es: Mario" required>
-                </div>
-                <div class="form-group">
-                    <label>Cognome:</label>
-                    <input type="text" id="test-cognome" name="cognome" placeholder="Es: Rossi" required>
-                </div>
-                <div class="form-group">
-                    <label>Telefono:</label>
-                    <input type="tel" id="test-telefono" name="telefono" placeholder="Es: +39 333 1234567" required>
-                </div>
-                <div class="form-group">
-                    <label>Tipo Analisi:</label>
-                    <select id="test-analisi" name="analisi" required>
-                        <option value="">-- Seleziona --</option>
-                        <option value="Ematologia">Ematologia</option>
-                        <option value="Biochmica">Biochmica</option>
-                        <option value="Sierologia">Sierologia</option>
-                        <option value="Immunologia">Immunologia</option>
-                        <option value="Coagulazione">Coagulazione</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Orario Preferito:</label>
-                    <select id="test-orario" name="orario">
-                        <option value="qualsiasi">Qualsiasi</option>
-                        <option value="mattina">Mattina (9-13)</option>
-                        <option value="pomeriggio">Pomeriggio (14-18)</option>
-                    </select>
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Crea Callback</button>
-                    <button type="button" class="btn btn-secondary modal-close-btn">Annulla</button>
-                </div>
-            </form>
+        <div class="fg-filter">
+          <label>Cantiere</label>
+          <select id="f-cantiere" onchange="renderGrid()"><option value="">Tutti</option></select>
         </div>
+        <div class="fg-filter">
+          <label>Mezzo</label>
+          <select id="f-mezzo" onchange="renderGrid()"><option value="">Tutti</option></select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="checkCompletezza()" class="btn btn-warn btn-sm">! Controlla copertura</button>
+        <button onclick="copyPrevWeek()" class="btn btn-w btn-sm">↩ Copia settimana prec.</button>
+      </div>
     </div>
+    <div class="alert-box no-print" id="alert-box">
+      <div class="alert-title">! Operai non assegnati questa settimana</div>
+      <div class="alert-list" id="alert-list"></div>
+    </div>
+    <div class="grid-wrap">
+      <table class="grid"><thead id="gh"></thead><tbody id="gb"></tbody></table>
+    </div>
+  </div>
 
-    <button id="test-callback-btn" class="btn-floating">🧪 Test</button>
+  <!-- DIPENDENTI -->
+  <div id="v-dip" style="display:none">
+    <div class="narrow">
+      <div class="row">
+        <span style="color:#888;font-size:13px" id="n-dip"></span>
+        <button onclick="toggleForm('form-dip')" class="btn btn-d">+ Aggiungi dipendente</button>
+      </div>
+      <div id="form-dip" style="display:none" class="form-panel">
+        <div class="form-row">
+          <div class="fg"><label>Nome e cognome *</label><input id="d-nome" placeholder="Mario Rossi"></div>
+          <div class="fg"><label>Ruolo</label>
+            <select id="d-ruolo"><option value="">Seleziona</option><option>Capo cantiere</option><option>Muratore</option><option>Carpentiere</option><option>Elettricista</option><option>Idraulico</option><option>Gruista</option><option>Geometra</option><option>Operaio generico</option><option>Altro</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Telefono</label><input id="d-tel" type="tel" placeholder="+39 333 0000000"></div>
+          <div class="fg"><label>Email <span style="font-size:10px;color:#3b82f6;font-weight:400">● notifiche</span></label><input id="d-email" type="email" placeholder="mario@email.com"></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="toggleForm('form-dip')" class="btn btn-w">Annulla</button>
+          <button id="btn-save-dip" class="btn btn-d">Salva</button>
+        </div>
+      </div>
+      <div id="list-dip"></div>
+    </div>
+  </div>
 
-    <script src="script.js?v=3"></script>
-    <script>
-function showTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-    document.getElementById(tabName + '-tab').style.display = 'block';
-    
-    if (tabName === 'completati') {
-        loadCompletati();
-    }
+  <!-- CANTIERI -->
+  <div id="v-can" style="display:none">
+    <div class="narrow">
+      <div class="row">
+        <span style="color:#888;font-size:13px" id="n-can"></span>
+        <button onclick="toggleForm('form-can')" class="btn btn-d">+ Aggiungi cantiere</button>
+      </div>
+      <div id="form-can" style="display:none" class="form-panel">
+        <div class="form-row">
+          <div class="fg"><label>Nome cantiere *</label><input id="c-nome" placeholder="CHEMI"></div>
+          <div class="fg"><label>N commessa</label><input id="c-comm" placeholder="00247CEN25"></div>
+        </div>
+        <div class="form-row">
+          <div class="fg"><label>Attività</label><input id="c-att" placeholder="Lavori elettrici"></div>
+          <div class="fg"><label>Mezzo</label><select id="c-mezzo"><option value="">- Nessun mezzo -</option></select></div>
+        </div>
+        <div class="fg" style="margin-bottom:10px"><label>Stato</label>
+          <select id="c-stato"><option value="attivo">Attivo</option><option value="in_pausa">In pausa</option><option value="completato">Completato</option></select>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="toggleForm('form-can')" class="btn btn-w">Annulla</button>
+          <button id="btn-save-can" class="btn btn-d">Salva</button>
+        </div>
+      </div>
+      <div id="list-can"></div>
+    </div>
+  </div>
+
+  <!-- MEZZI -->
+  <div id="v-mez" style="display:none">
+    <div class="narrow">
+      <div class="row">
+        <span style="color:#888;font-size:13px" id="n-mez"></span>
+        <button onclick="toggleForm('form-mez')" class="btn btn-d">+ Aggiungi mezzo</button>
+      </div>
+      <div id="form-mez" style="display:none" class="form-panel">
+        <div class="form-row">
+          <div class="fg"><label>Nome mezzo *</label><input id="m-nome" placeholder="Furgone, Autocarro..."></div>
+          <div class="fg"><label>Targa *</label><input id="m-targa" placeholder="GV198RL"></div>
+        </div>
+        <div class="fg" style="margin-bottom:10px"><label>Note</label><input id="m-note" placeholder="es. Toyota Hilux bianco"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="toggleForm('form-mez')" class="btn btn-w">Annulla</button>
+          <button id="btn-save-mez" class="btn btn-d">Salva</button>
+        </div>
+      </div>
+      <div id="list-mez"></div>
+    </div>
+  </div>
+
+  <!-- VISTA DIPENDENTE -->
+  <div id="v-worker" style="display:none">
+    <div class="narrow">
+      <div class="row no-print">
+        <div class="fg" style="flex:1;max-width:280px">
+          <label style="font-size:12px;color:#666;font-weight:500">Dipendente</label>
+          <select id="w-sel"><option value="">- Scegli -</option></select>
+        </div>
+        <div class="week-nav">
+          <button onclick="workerPrev()">&#8592;</button>
+          <span id="w-label">-</span>
+          <button onclick="workerNext()">&#8594;</button>
+        </div>
+      </div>
+      <div id="worker-view"></div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var S = { dipendenti:[], mezzi:[], cantieri:[], pianificazione:[], monday:'', weekDates:[] };
+var currentMonday = '';
+var workerMonday  = '';
+var GIORNI       = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+var GIORNI_SHORT = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+var COLORS       = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+var colorMap     = {};
+
+function ini(n){ return (n||'?').split(' ').map(function(p){return p[0]||'';}).join('').toUpperCase().slice(0,2); }
+function setS(t){ document.getElementById('ss').textContent=t; }
+function toggleForm(id){ var e=document.getElementById(id); e.style.display=e.style.display==='none'?'block':'none'; }
+function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){t.classList.remove('show');},2500); }
+function addDays(s,n){ var d=new Date(s); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function fmtRange(mon){
+  var sat=addDays(mon,5);
+  return new Date(mon).toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' - '+new Date(sat).toLocaleDateString('it-IT',{day:'numeric',month:'short'});
 }
-    </script>
+function siteColor(id){ if(!colorMap[id]){ colorMap[id]=COLORS[Object.keys(colorMap).length%COLORS.length]; } return colorMap[id]; }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function go(t){
+  ['piano','dip','can','mez','worker'].forEach(function(x){
+    document.getElementById('t-'+x).classList.toggle('on',x===t);
+    document.getElementById('v-'+x).style.display=x===t?'block':'none';
+  });
+  if(t==='worker') fillWorkerSel();
+  if(t==='can') aggiornaMezziSelect();
+}
+
+// ── BOOT ────────────────────────────────────────────────────────
+function boot(){
+  document.getElementById('lv').style.display='block';
+  document.getElementById('ev').style.display='none';
+  document.getElementById('mc').style.display='none';
+  setS('Caricamento...');
+  google.script.run
+    .withSuccessHandler(function(data){
+      try {
+        // Normalizza dati: garantisce che tutti i campi array esistano
+        S = {
+          dipendenti:    Array.isArray(data.dipendenti)    ? data.dipendenti    : [],
+          mezzi:         Array.isArray(data.mezzi)         ? data.mezzi         : [],
+          cantieri:      Array.isArray(data.cantieri)      ? data.cantieri      : [],
+          pianificazione:Array.isArray(data.pianificazione)? data.pianificazione: [],
+          monday:        data.monday    || '',
+          weekDates:     Array.isArray(data.weekDates)     ? data.weekDates     : []
+        };
+        currentMonday = S.monday;
+        if(!workerMonday) workerMonday = S.monday;
+        document.getElementById('lv').style.display='none';
+        document.getElementById('mc').style.display='block';
+        renderAll();
+        setS('Connesso al foglio Google');
+      } catch(jsErr) {
+        document.getElementById('lv').style.display='none';
+        document.getElementById('ev').style.display='block';
+        document.getElementById('em').textContent='Errore JS: '+jsErr.message;
+        console.error('renderAll error:', jsErr);
+      }
+    })
+    .withFailureHandler(function(err){
+      document.getElementById('lv').style.display='none';
+      document.getElementById('ev').style.display='block';
+      document.getElementById('em').textContent='Errore server: '+(err.message||JSON.stringify(err));
+      console.error('boot server error:', err);
+    })
+    .getAllData(null);
+}
+
+function refreshWeekOnly(){
+  google.script.run
+    .withSuccessHandler(function(data){ S.pianificazione=data.pianificazione; S.weekDates=data.weekDates; renderGrid(); setS('Connesso'); })
+    .withFailureHandler(function(err){ toast('Errore: '+err.message); })
+    .getAllData(currentMonday);
+}
+function prevWeek(){
+  setS('Caricamento...');
+  google.script.run
+    .withSuccessHandler(function(data){ S=data; currentMonday=data.monday; renderAll(); setS('Connesso al foglio Google'); })
+    .withFailureHandler(function(err){ toast('Errore: '+err.message); })
+    .getAllData(addDays(currentMonday,-7));
+}
+function nextWeek(){
+  setS('Caricamento...');
+  google.script.run
+    .withSuccessHandler(function(data){ S=data; currentMonday=data.monday; renderAll(); setS('Connesso al foglio Google'); })
+    .withFailureHandler(function(err){ toast('Errore: '+err.message); })
+    .getAllData(addDays(currentMonday,7));
+}
+function renderAll(){ aggiornaMezziSelect(); aggiornaFiltri(); renderGrid(); renderDip(); renderCan(); renderMez(); }
+
+// ── SELECT MEZZI nei form ────────────────────────────────────────
+function aggiornaMezziSelect(){
+  var opts='<option value="">- Nessun mezzo -</option>';
+  for(var i=0;i<S.mezzi.length;i++){
+    var m=S.mezzi[i];
+    opts+='<option value="'+esc(m.targa)+'">'+esc(m.targa)+(m.nome?' - '+esc(m.nome):'')+'</option>';
+  }
+  var sel=document.getElementById('c-mezzo');
+  if(sel){ var cur=sel.value; sel.innerHTML=opts; if(cur) sel.value=cur; }
+}
+
+// ── FILTRI pianificazione ────────────────────────────────────────
+function aggiornaFiltri(){
+  var fc=document.getElementById('f-cantiere');
+  var fm=document.getElementById('f-mezzo');
+  var curC=fc.value, curM=fm.value;
+  fc.innerHTML='<option value="">Tutti</option>';
+  fm.innerHTML='<option value="">Tutti</option>';
+  var mezziVisti={};
+  S.cantieri.forEach(function(c){
+    if(c.stato==='completato') return;
+    fc.innerHTML+='<option value="'+esc(c.id)+'">'+esc(c.nome)+'</option>';
+    if(c.mezzo && !mezziVisti[c.mezzo]){
+      fm.innerHTML+='<option value="'+esc(c.mezzo)+'">'+esc(c.mezzo)+'</option>';
+      mezziVisti[c.mezzo]=true;
+    }
+  });
+  if(curC) fc.value=curC;
+  if(curM) fm.value=curM;
+}
+
+// ── CONTROLLO COMPLETEZZA ────────────────────────────────────────
+function checkCompletezza(){
+  var box=document.getElementById('alert-box');
+  var lst=document.getElementById('alert-list');
+  var dates=S.weekDates||[];
+  var giorniLav=dates.slice(0,5); // solo lun-ven
+  var problemi=[];
+  giorniLav.forEach(function(date,i){
+    var nonAss=[];
+    S.dipendenti.forEach(function(d){
+      var ha=S.pianificazione.some(function(p){ return p.dipendenteId===d.id && p.data===date; });
+      if(!ha) nonAss.push(d.nome);
+    });
+    if(nonAss.length) problemi.push('<b>'+GIORNI[i]+' '+new Date(date).toLocaleDateString('it-IT',{day:'numeric',month:'short'})+'</b>: '+nonAss.join(', '));
+  });
+  if(!problemi.length){ toast('OK - Tutti gli operai sono assegnati'); box.classList.remove('show'); }
+  else { lst.innerHTML=problemi.join('<br>'); box.classList.add('show'); }
+}
+
+// ── GRIGLIA ─────────────────────────────────────────────────────
+function renderGrid(){
+  var label=fmtRange(currentMonday);
+  document.getElementById('week-label').textContent=label;
+  document.getElementById('print-title').textContent='Cronoprogramma - '+label;
+  var dates=S.weekDates||[];
+  var filtCan=document.getElementById('f-cantiere').value;
+  var filtMez=document.getElementById('f-mezzo').value;
+
+  // Intestazione giorni
+  var th='<tr><th>Cantiere</th><th>Attività</th><th>Mezzo</th><th>Commessa</th>';
+  for(var i=0;i<dates.length;i++){
+    var dt=new Date(dates[i]);
+    th+='<th class="day">'+GIORNI_SHORT[i]+'<br><span style="font-weight:400;font-size:11px">'+dt.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'})+'</span></th>';
+  }
+  document.getElementById('gh').innerHTML=th+'</tr>';
+
+  var attivi=S.cantieri.filter(function(c){
+    if(c.stato==='completato') return false;
+    if(filtCan && c.id!==filtCan) return false;
+    if(filtMez && c.mezzo!==filtMez) return false;
+    return true;
+  });
+
+  if(!attivi.length){
+    document.getElementById('gb').innerHTML='<tr><td colspan="'+(4+dates.length)+'" class="empty">Nessun cantiere corrispondente ai filtri.</td></tr>';
+    document.getElementById('gb').onclick=null;
+    document.getElementById('gb').onchange=null;
+    return;
+  }
+
+  // Opzioni cantieri (per il select della colonna Cantiere)
+  var canOpts='<option value="">- Seleziona -</option>';
+  for(var k=0;k<S.cantieri.length;k++){
+    var ck=S.cantieri[k];
+    if(ck.stato!=='completato') canOpts+='<option value="'+ck.id+'">'+esc(ck.nome)+'</option>';
+  }
+
+  // Opzioni mezzi (per il select della colonna Mezzo)
+  var mezOpts='<option value="">- Nessuno -</option>';
+  for(var mi=0;mi<S.mezzi.length;mi++){
+    var mz=S.mezzi[mi];
+    mezOpts+='<option value="'+esc(mz.targa)+'">'+esc(mz.targa)+(mz.nome?' ('+esc(mz.nome)+')':'')+'</option>';
+  }
+
+  var rows='';
+  for(var ci=0;ci<attivi.length;ci++){
+    var c=attivi[ci];
+
+    // CANTIERE - select con cantieri disponibili, pre-selezionato sull'attuale
+    var canSelHtml='<select class="cell-sel grid-can no-print" data-canid="'+c.id+'">';
+    for(var k2=0;k2<S.cantieri.length;k2++){
+      var ck2=S.cantieri[k2];
+      if(ck2.stato!=='completato'){
+        canSelHtml+='<option value="'+ck2.id+'"'+(ck2.id===c.id?' selected':'')+'>'+esc(ck2.nome)+'</option>';
+      }
+    }
+    canSelHtml+='</select>';
+
+    // MEZZO - select con mezzi registrati, pre-selezionato sull'attuale
+    var mezSelHtml='<select class="cell-sel grid-mezzo no-print" data-canid="'+c.id+'">';
+    for(var mi2=0;mi2<S.mezzi.length;mi2++){
+      var mz2=S.mezzi[mi2];
+      mezSelHtml+='<option value="'+esc(mz2.targa)+'"'+(mz2.targa===c.mezzo?' selected':'')+'>'+esc(mz2.targa)+(mz2.nome?' ('+esc(mz2.nome)+')':'')+'</option>';
+    }
+    mezSelHtml+='</select>';
+
+    // Badge stampa
+    var mezzoBadge=c.mezzo?'<span class="tag tag-m print-only">'+esc(c.mezzo)+'</span>':'';
+    var commessaBadge=c.commessa?'<span class="tag tag-c">'+esc(c.commessa)+'</span>':'<span style="color:#ccc;font-size:12px">-</span>';
+
+    var row=
+      '<td class="info">'+
+        '<div class="can-name print-only">'+esc(c.nome)+'</div>'+
+        canSelHtml+
+        (c.stato==='in_pausa'?'<span class="tag tag-p">In pausa</span>':'')+
+      '</td>'+
+      '<td class="info"><span style="font-size:12px;color:#555">'+(c.attivita||'-')+'</span></td>'+
+      '<td class="info">'+mezzoBadge+mezSelHtml+'</td>'+
+      '<td class="info">'+commessaBadge+'</td>';
+
+    // Colonne giorni con select operai
+    for(var di=0;di<dates.length;di++){
+      var date=dates[di]; var cid=c.id;
+      var assigned=[], occupatiOggi={};
+      for(var pi=0;pi<S.pianificazione.length;pi++){
+        var p=S.pianificazione[pi];
+        if(p.data===date) occupatiOggi[p.dipendenteId]=true;
+        if(p.cantiereId===cid && p.data===date) assigned.push(p);
+      }
+      var chips='';
+      for(var ai=0;ai<assigned.length;ai++){
+        var a=assigned[ai];
+        chips+='<div class="chip"><div class="chip-av">'+ini(a.nomeDipendente)+'</div>'+
+          '<span class="chip-name">'+esc(a.nomeDipendente)+'</span>'+
+          '<button class="chip-rm" data-pid="'+a.id+'">x</button></div>';
+      }
+      var dipOpts='<option value="">+ aggiungi...</option>';
+      var hasOpt=false;
+      for(var si=0;si<S.dipendenti.length;si++){
+        var dip=S.dipendenti[si];
+        if(!occupatiOggi[dip.id]){ dipOpts+='<option value="'+dip.id+'|'+cid+'|'+date+'">'+esc(dip.nome)+'</option>'; hasOpt=true; }
+      }
+      chips+='<select class="cell-sel no-print"'+(hasOpt?'':' disabled title="Tutti assegnati"')+'>'+dipOpts+'</select>';
+      row+='<td class="day-cell">'+chips+'</td>';
+    }
+    rows+='<tr>'+row+'</tr>';
+  }
+  document.getElementById('gb').innerHTML=rows;
+
+  // ── Click: rimuovi chip operaio ──────────────────────────────
+  document.getElementById('gb').onclick=function(e){
+    var rm=e.target;
+    if(rm.className==='chip-rm') removeP(rm.getAttribute('data-pid'));
+  };
+
+  // ── Change: gestisce tutti i select della griglia ────────────
+  document.getElementById('gb').onchange=function(e){
+    var sel=e.target;
+    if(!sel.classList) return;
+
+    // 1. Select CANTIERE - controlla duplicati e aggiorna
+    if(sel.classList.contains('grid-can')){
+      var vecchioId=sel.getAttribute('data-canid');
+      var nuovoId=sel.value;
+      if(!nuovoId || nuovoId===vecchioId) return;
+      // Controlla se il cantiere scelto è già presente in un altra riga
+      var selects=document.querySelectorAll('.grid-can');
+      for(var gi=0;gi<selects.length;gi++){
+        if(selects[gi]!==sel && selects[gi].value===nuovoId){
+          toast('ATTENZIONE: Cantiere gia in un altra riga');
+          sel.value=vecchioId; // ripristina
+          return;
+        }
+      }
+      sel.setAttribute('data-canid', nuovoId);
+      // Aggiorna i data-canid dei select operai e mezzo della stessa riga
+      var tr=sel.closest('tr');
+      if(tr){
+        tr.querySelectorAll('[data-canid]').forEach(function(el){ el.setAttribute('data-canid',nuovoId); });
+        tr.querySelectorAll('.cell-sel:not(.grid-can):not(.grid-mezzo)').forEach(function(el){
+          // Aggiorna le option degli operai con il nuovo cantiereId
+          var opts=el.querySelectorAll('option[value]');
+          opts.forEach(function(o){
+            if(o.value && o.value.indexOf('|')>0){
+              var parts=o.value.split('|');
+              parts[1]=nuovoId;
+              o.value=parts.join('|');
+            }
+          });
+        });
+      }
+      toast('Cantiere aggiornato');
+      return;
+    }
+
+    // 2. Select MEZZO - cambia il mezzo assegnato al cantiere
+    if(sel.classList.contains('grid-mezzo')){
+      var cid2=sel.getAttribute('data-canid');
+      var nuovoMezzo=sel.value;
+      var can2=null;
+      for(var i=0;i<S.cantieri.length;i++){ if(S.cantieri[i].id===cid2){ can2=S.cantieri[i]; break; } }
+      if(!can2) return;
+      // Controlla mezzo duplicato lato client
+      var altriMezzo=document.querySelectorAll('.grid-mezzo');
+      var dupMezzo=false;
+      for(var gm=0;gm<altriMezzo.length;gm++){
+        if(altriMezzo[gm]!==sel && altriMezzo[gm].value===nuovoMezzo && nuovoMezzo!==''){
+          toast('ATTENZIONE: Mezzo gia assegnato altrove');
+          sel.value=can2?can2.mezzo:''; // ripristina
+          return;
+        }
+      }
+      sel.disabled=true; setS('Salvataggio mezzo...');
+      var p2={id:can2.id,nome:can2.nome,commessa:can2.commessa,attivita:can2.attivita,mezzo:nuovoMezzo,stato:can2.stato};
+      google.script.run
+        .withSuccessHandler(function(res2){
+          sel.disabled=false;
+          if(res2 && !res2.success){ toast('ATTENZIONE: '+res2.error); sel.value=can2.mezzo; return; }
+          can2.mezzo=nuovoMezzo;
+          // aggiorna badge stampa
+          var badge=sel.previousElementSibling;
+          if(badge && badge.classList.contains('print-only')) badge.innerHTML=nuovoMezzo?'<span class="tag tag-m">'+esc(nuovoMezzo)+'</span>':'';
+          aggiornaFiltri(); setS('Connesso al foglio Google'); toast('Mezzo aggiornato');
+        })
+        .withFailureHandler(function(err){ sel.disabled=false; toast('Errore: '+err.message); })
+        .updateCantiere(p2);
+      return;
+    }
+
+    // 3. Select OPERAI - aggiungi dipendente al giorno
+    if(sel.classList.contains('cell-sel')){
+      var val=sel.value; if(!val) return;
+      var parts=val.split('|'); if(parts.length!==3) return;
+      sel.disabled=true; sel.className='cell-sel loading'; setS('Salvataggio...');
+      google.script.run
+        .withSuccessHandler(function(res){
+          if(!res.success){ toast(res.error||'Errore'); sel.disabled=false; sel.className='cell-sel'; sel.value=''; return; }
+          refreshWeekOnly(); toast('Operaio aggiunto');
+        })
+        .withFailureHandler(function(err){ toast('Errore: '+err.message); sel.disabled=false; sel.className='cell-sel'; sel.value=''; })
+        .addPianificazione({ dipendenteId:parts[0], cantiereId:parts[1], data:parts[2] });
+      return;
+    }
+  };
+}
+
+
+function removeP(id){
+  if(!confirm('Rimuovere questo dipendente dalla giornata?')) return;
+  google.script.run
+    .withSuccessHandler(function(){ refreshWeekOnly(); toast('Rimosso'); })
+    .withFailureHandler(function(err){ toast('Errore: '+err.message); })
+    .removePianificazione(id);
+}
+function copyPrevWeek(){
+  var prev=addDays(currentMonday,-7);
+  if(!confirm('Copiare la settimana del '+fmtRange(prev)+' su questa?')) return;
+  google.script.run
+    .withSuccessHandler(function(res){ if(!res.success){ toast(res.error||'Nessun dato'); return; } refreshWeekOnly(); toast('Copiati '+res.added+' record'); })
+    .withFailureHandler(function(err){ toast('Errore: '+err.message); })
+    .copyWeek(addDays(currentMonday,-7),currentMonday);
+}
+
+// ── UTILITY FORM MODIFICA ────────────────────────────────────────
+function toggleEdit(id){ var p=document.getElementById(id); if(!p) return; var was=p.classList.contains('open'); document.querySelectorAll('.edit-panel.open').forEach(function(el){el.classList.remove('open');}); if(!was) p.classList.add('open'); }
+function closeEdit(id){ var p=document.getElementById(id); if(p) p.classList.remove('open'); }
+function ruoloOpts(sel){ return ['','Capo cantiere','Muratore','Carpentiere','Elettricista','Idraulico','Gruista','Geometra','Operaio generico','Altro'].map(function(o){ return '<option'+(o===sel?' selected':'')+' value="'+o+'">'+(o||'Seleziona')+'</option>'; }).join(''); }
+function mezziOpts(selTarga){ var h='<option value="">- Nessun mezzo -</option>'; S.mezzi.forEach(function(m){ h+='<option value="'+esc(m.targa)+'"'+(m.targa===selTarga?' selected':'')+'>'+esc(m.targa)+(m.nome?' - '+esc(m.nome):'')+'</option>'; }); return h; }
+
+// ── DIPENDENTI ───────────────────────────────────────────────────
+function renderDip(){
+  var l=document.getElementById('list-dip');
+  document.getElementById('n-dip').textContent=S.dipendenti.length+' dipendenti';
+  if(!S.dipendenti.length){ l.innerHTML='<div class="empty">Nessun dipendente.</div>'; return; }
+  var html='';
+  S.dipendenti.forEach(function(d){
+    html+=
+      '<div class="list-card">'+
+        '<div class="list-card-main">'+
+          '<div class="list-av">'+ini(d.nome)+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-weight:500">'+esc(d.nome)+'</div>'+
+            '<div style="font-size:12px;color:#888">'+(d.ruolo||'')+(d.telefono?' - '+d.telefono:'')+'</div>'+
+            '<div style="font-size:11px;color:'+(d.email?'#3b82f6':'#ccc')+'">'+(d.email?''+d.email:'nessuna email')+'</div>'+
+          '</div>'+
+          '<button class="btn-e" data-edit-dip="'+d.id+'">Modifica</button>'+
+          '<button class="btn-r" data-del-dip="'+d.id+'">Rimuovi</button>'+
+        '</div>'+
+        '<div class="edit-panel" id="dep-'+d.id+'">'+
+          '<div class="form-row"><div class="fg"><label>Nome *</label><input class="ed-nome" value="'+esc(d.nome)+'"></div>'+
+          '<div class="fg"><label>Ruolo</label><select class="ed-ruolo">'+ruoloOpts(d.ruolo)+'</select></div></div>'+
+          '<div class="form-row"><div class="fg"><label>Telefono</label><input class="ed-tel" value="'+esc(d.telefono||'')+'"></div>'+
+          '<div class="fg"><label>Email</label><input class="ed-email" type="email" value="'+esc(d.email||'')+'"></div></div>'+
+          '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+            '<button class="btn btn-w btn-sm" data-cancel-dip="'+d.id+'">Annulla</button>'+
+            '<button class="btn btn-d btn-sm" data-save-dip="'+d.id+'">Salva</button>'+
+          '</div></div></div>';
+  });
+  l.innerHTML=html;
+  l.onclick=function(e){
+    var t=e.target;
+    var ed=t.getAttribute('data-edit-dip'); if(ed){ toggleEdit('dep-'+ed); return; }
+    var ca=t.getAttribute('data-cancel-dip'); if(ca){ closeEdit('dep-'+ca); return; }
+    var sv=t.getAttribute('data-save-dip'); if(sv){ saveDipEdit(sv,t); return; }
+    var rm=t.getAttribute('data-del-dip'); if(rm){ delDip(rm,t); return; }
+  };
+}
+
+function saveDipEdit(id,btn){
+  var p=document.getElementById('dep-'+id);
+  var nome=p.querySelector('.ed-nome').value.trim(); if(!nome){ alert('Nome obbligatorio'); return; }
+  btn.disabled=true; btn.style.opacity='.4';
+  var payload={id:id,nome:nome,ruolo:p.querySelector('.ed-ruolo').value,telefono:p.querySelector('.ed-tel').value.trim(),email:p.querySelector('.ed-email').value.trim()};
+  google.script.run
+    .withSuccessHandler(function(){ btn.disabled=false; btn.style.opacity='1'; S.dipendenti.forEach(function(d){ if(d.id===id){d.nome=payload.nome;d.ruolo=payload.ruolo;d.telefono=payload.telefono;d.email=payload.email;} }); renderDip(); toast('Aggiornato'); })
+    .withFailureHandler(function(err){ btn.disabled=false; btn.style.opacity='1'; toast('Errore: '+err.message); })
+    .updateDipendente(payload);
+}
+
+document.getElementById('btn-save-dip').onclick=function(){ saveDip(this); };
+function saveDip(btn){
+  var nome=document.getElementById('d-nome').value.trim(); if(!nome){ alert('Nome obbligatorio'); return; }
+  btn.disabled=true; btn.style.opacity='.4';
+  var ruolo=document.getElementById('d-ruolo').value, tel=document.getElementById('d-tel').value.trim(), email=document.getElementById('d-email').value.trim();
+  google.script.run
+    .withSuccessHandler(function(res){ btn.disabled=false; btn.style.opacity='1'; S.dipendenti.push({id:res.id,nome:nome,ruolo:ruolo,telefono:tel,email:email}); document.getElementById('d-nome').value=''; document.getElementById('d-tel').value=''; document.getElementById('d-email').value=''; document.getElementById('d-ruolo').value=''; toggleForm('form-dip'); renderDip(); renderGrid(); toast('Dipendente aggiunto'); })
+    .withFailureHandler(function(err){ btn.disabled=false; btn.style.opacity='1'; toast('Errore: '+err.message); })
+    .addDipendente({nome:nome,ruolo:ruolo,telefono:tel,email:email});
+}
+function delDip(id,btn){
+  if(!confirm('Rimuovere il dipendente?')) return; if(btn) btn.disabled=true;
+  google.script.run
+    .withSuccessHandler(function(){ S.dipendenti=S.dipendenti.filter(function(d){return d.id!==id;}); S.pianificazione=S.pianificazione.filter(function(p){return p.dipendenteId!==id;}); renderDip(); renderGrid(); toast('Rimosso'); })
+    .withFailureHandler(function(err){ if(btn) btn.disabled=false; toast('Errore: '+err.message); })
+    .deleteDipendente(id);
+}
+
+// ── CANTIERI ─────────────────────────────────────────────────────
+function renderCan(){
+  var l=document.getElementById('list-can');
+  document.getElementById('n-can').textContent=S.cantieri.length+' cantieri';
+  if(!S.cantieri.length){ l.innerHTML='<div class="empty">Nessun cantiere.</div>'; return; }
+  var SLBL={attivo:'Attivo',in_pausa:'In pausa',completato:'Completato'};
+  var SCLS={attivo:'tag-a',in_pausa:'tag-p',completato:'tag-x'};
+  var html='';
+  S.cantieri.forEach(function(c){
+    html+=
+      '<div class="list-card">'+
+        '<div class="list-card-main">'+
+          '<div class="list-av c">'+esc(c.nome.slice(0,8))+'</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-weight:500;display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+esc(c.nome)+
+              '<span class="tag '+(SCLS[c.stato]||'tag-a')+'">'+(SLBL[c.stato]||'Attivo')+'</span>'+
+              (c.commessa?'<span class="tag tag-c">'+esc(c.commessa)+'</span>':'')+
+            '</div>'+
+            '<div style="font-size:12px;color:#888;margin-top:2px">'+(c.attivita||'')+(c.mezzo?' - <span class="tag tag-m">'+esc(c.mezzo)+'</span>':'')+'</div>'+
+          '</div>'+
+          '<button class="btn-e" data-edit-can="'+c.id+'">Modifica</button>'+
+          '<button class="btn-r" data-del-can="'+c.id+'">Rimuovi</button>'+
+        '</div>'+
+        '<div class="edit-panel" id="can-'+c.id+'">'+
+          '<div class="form-row"><div class="fg"><label>Nome *</label><input class="ec-nome" value="'+esc(c.nome)+'"></div>'+
+          '<div class="fg"><label>N commessa</label><input class="ec-comm" value="'+esc(c.commessa||'')+'"></div></div>'+
+          '<div class="form-row"><div class="fg"><label>Attività</label><input class="ec-att" value="'+esc(c.attivita||'')+'"></div>'+
+          '<div class="fg"><label>Mezzo</label><select class="ec-mezzo">'+mezziOpts(c.mezzo)+'</select></div></div>'+
+          '<div class="fg" style="margin-bottom:10px"><label>Stato</label><select class="ec-stato">'+
+            '<option value="attivo"'+(c.stato==='attivo'?' selected':'')+'>Attivo</option>'+
+            '<option value="in_pausa"'+(c.stato==='in_pausa'?' selected':'')+'>In pausa</option>'+
+            '<option value="completato"'+(c.stato==='completato'?' selected':'')+'>Completato</option>'+
+          '</select></div>'+
+          '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+            '<button class="btn btn-w btn-sm" data-cancel-can="'+c.id+'">Annulla</button>'+
+            '<button class="btn btn-d btn-sm" data-save-can="'+c.id+'">Salva</button>'+
+          '</div></div></div>';
+  });
+  l.innerHTML=html;
+  l.onclick=function(e){
+    var t=e.target;
+    var ed=t.getAttribute('data-edit-can'); if(ed){ toggleEdit('can-'+ed); return; }
+    var ca=t.getAttribute('data-cancel-can'); if(ca){ closeEdit('can-'+ca); return; }
+    var sv=t.getAttribute('data-save-can'); if(sv){ saveCanEdit(sv,t); return; }
+    var rm=t.getAttribute('data-del-can'); if(rm){ delCan(rm,t); return; }
+  };
+}
+
+function saveCanEdit(id,btn){
+  var p=document.getElementById('can-'+id);
+  var nome=p.querySelector('.ec-nome').value.trim(); if(!nome){ alert('Nome obbligatorio'); return; }
+  btn.disabled=true; btn.style.opacity='.4';
+  var payload={id:id,nome:nome,commessa:p.querySelector('.ec-comm').value.trim(),attivita:p.querySelector('.ec-att').value.trim(),mezzo:p.querySelector('.ec-mezzo').value,stato:p.querySelector('.ec-stato').value};
+  google.script.run
+    .withSuccessHandler(function(){ btn.disabled=false; btn.style.opacity='1'; S.cantieri.forEach(function(c){ if(c.id===id){c.nome=payload.nome;c.commessa=payload.commessa;c.attivita=payload.attivita;c.mezzo=payload.mezzo;c.stato=payload.stato;} }); renderCan(); aggiornaFiltri(); renderGrid(); toast('Cantiere aggiornato'); })
+    .withFailureHandler(function(err){ btn.disabled=false; btn.style.opacity='1'; toast('Errore: '+err.message); })
+    .updateCantiere(payload);
+}
+
+document.getElementById('btn-save-can').onclick=function(){ saveCan(this); };
+function saveCan(btn){
+  var nome=document.getElementById('c-nome').value.trim(); if(!nome){ alert('Nome obbligatorio'); return; }
+  btn.disabled=true; btn.style.opacity='.4';
+  var payload={nome:nome,commessa:document.getElementById('c-comm').value.trim(),attivita:document.getElementById('c-att').value.trim(),mezzo:document.getElementById('c-mezzo').value,stato:document.getElementById('c-stato').value};
+  google.script.run
+    .withSuccessHandler(function(res){ btn.disabled=false; btn.style.opacity='1'; payload.id=res.id; S.cantieri.push(payload); ['c-nome','c-comm','c-att'].forEach(function(i){document.getElementById(i).value='';}); document.getElementById('c-mezzo').value=''; toggleForm('form-can'); renderCan(); aggiornaFiltri(); renderGrid(); toast('Cantiere aggiunto'); })
+    .withFailureHandler(function(err){ btn.disabled=false; btn.style.opacity='1'; toast('Errore: '+err.message); })
+    .addCantiere(payload);
+}
+function delCan(id,btn){
+  if(!confirm('Rimuovere il cantiere?')) return; if(btn) btn.disabled=true;
+  google.script.run
+    .withSuccessHandler(function(){ S.cantieri=S.cantieri.filter(function(c){return c.id!==id;}); S.pianificazione=S.pianificazione.filter(function(p){return p.cantiereId!==id;}); renderCan(); aggiornaFiltri(); renderGrid(); toast('Cantiere rimosso'); })
+    .withFailureHandler(function(err){ if(btn) btn.disabled=false; toast('Errore: '+err.message); })
+    .deleteCantiere(id);
+}
+
+// ── MEZZI ────────────────────────────────────────────────────────
+function renderMez(){
+  var l=document.getElementById('list-mez');
+  document.getElementById('n-mez').textContent=S.mezzi.length+' mezzi';
+  if(!S.mezzi.length){ l.innerHTML='<div class="empty">Nessun mezzo. Aggiungine uno!</div>'; return; }
+  var html='';
+  S.mezzi.forEach(function(m){
+    html+=
+      '<div class="list-card">'+
+        '<div class="list-card-main">'+
+          '<div class="list-av m">[Auto]</div>'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-weight:500;display:flex;gap:8px;align-items:center">'+esc(m.nome||'-')+
+              '<span class="tag tag-m">'+esc(m.targa)+'</span>'+
+            '</div>'+
+            (m.note?'<div style="font-size:12px;color:#888">'+esc(m.note)+'</div>':'')+
+          '</div>'+
+          '<button class="btn-e" data-edit-mez="'+m.id+'">Modifica</button>'+
+          '<button class="btn-r" data-del-mez="'+m.id+'">Rimuovi</button>'+
+        '</div>'+
+        '<div class="edit-panel" id="mez-'+m.id+'">'+
+          '<div class="form-row"><div class="fg"><label>Nome *</label><input class="em-nome" value="'+esc(m.nome||'')+'"></div>'+
+          '<div class="fg"><label>Targa *</label><input class="em-targa" value="'+esc(m.targa||'')+'"></div></div>'+
+          '<div class="fg" style="margin-bottom:10px"><label>Note</label><input class="em-note" value="'+esc(m.note||'')+'"></div>'+
+          '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+            '<button class="btn btn-w btn-sm" data-cancel-mez="'+m.id+'">Annulla</button>'+
+            '<button class="btn btn-d btn-sm" data-save-mez="'+m.id+'">Salva</button>'+
+          '</div></div></div>';
+  });
+  l.innerHTML=html;
+  l.onclick=function(e){
+    var t=e.target;
+    var ed=t.getAttribute('data-edit-mez'); if(ed){ toggleEdit('mez-'+ed); return; }
+    var ca=t.getAttribute('data-cancel-mez'); if(ca){ closeEdit('mez-'+ca); return; }
+    var sv=t.getAttribute('data-save-mez'); if(sv){ saveMezEdit(sv,t); return; }
+    var rm=t.getAttribute('data-del-mez'); if(rm){ delMez(rm,t); return; }
+  };
+}
+
+function saveMezEdit(id,btn){
+  var p=document.getElementById('mez-'+id);
+  var nome=p.querySelector('.em-nome').value.trim();
+  var targa=p.querySelector('.em-targa').value.trim().toUpperCase();
+  if(!nome||!targa){ alert('Nome e targa obbligatori'); return; }
+  btn.disabled=true; btn.style.opacity='.4';
+  var payload={id:id,nome:nome,targa:targa,note:p.querySelector('.em-note').value.trim()};
+  google.script.run
+    .withSuccessHandler(function(){ btn.disabled=false; btn.style.opacity='1'; S.mezzi.forEach(function(m){ if(m.id===id){m.nome=payload.nome;m.targa=payload.targa;m.note=payload.note;} }); renderMez(); aggiornaMezziSelect(); aggiornaFiltri(); toast('Mezzo aggiornato'); })
+    .withFailureHandler(function(err){ btn.disabled=false; btn.style.opacity='1'; toast('Errore: '+err.message); })
+    .updateMezzo(payload);
+}
+
+document.getElementById('btn-save-mez').onclick=function(){ saveMez(this); };
+function saveMez(btn){
+  var nome=document.getElementById('m-nome').value.trim();
+  var targa=document.getElementById('m-targa').value.trim().toUpperCase();
+  if(!nome||!targa){ alert('Nome e targa sono obbligatori'); return; }
+  btn.disabled=true; btn.style.opacity='.4';
+  var nota=document.getElementById('m-note').value.trim();
+  google.script.run
+    .withSuccessHandler(function(res){ btn.disabled=false; btn.style.opacity='1'; S.mezzi.push({id:res.id,nome:nome,targa:targa,note:nota}); document.getElementById('m-nome').value=''; document.getElementById('m-targa').value=''; document.getElementById('m-note').value=''; toggleForm('form-mez'); renderMez(); aggiornaMezziSelect(); aggiornaFiltri(); toast('Mezzo aggiunto'); })
+    .withFailureHandler(function(err){ btn.disabled=false; btn.style.opacity='1'; toast('Errore: '+err.message); })
+    .addMezzo({nome:nome,targa:targa,note:nota});
+}
+function delMez(id,btn){
+  if(!confirm('Rimuovere questo mezzo?')) return; if(btn) btn.disabled=true;
+  google.script.run
+    .withSuccessHandler(function(){ S.mezzi=S.mezzi.filter(function(m){return m.id!==id;}); renderMez(); aggiornaMezziSelect(); aggiornaFiltri(); toast('Mezzo rimosso'); })
+    .withFailureHandler(function(err){ if(btn) btn.disabled=false; toast('Errore: '+err.message); })
+    .deleteMezzo(id);
+}
+
+// ── VISTA DIPENDENTE ─────────────────────────────────────────────
+function fillWorkerSel(){
+  var sel=document.getElementById('w-sel'); var cur=sel.value;
+  var html='<option value="">- Scegli -</option>';
+  S.dipendenti.forEach(function(d){ html+='<option value="'+d.id+'">'+esc(d.nome)+'</option>'; });
+  sel.innerHTML=html; if(cur) sel.value=cur;
+}
+document.getElementById('w-sel').onchange=function(){ loadWorker(); };
+function loadWorker(){
+  var id=document.getElementById('w-sel').value;
+  if(!id){ document.getElementById('worker-view').innerHTML=''; return; }
+  document.getElementById('w-label').textContent=fmtRange(workerMonday);
+  setS('Caricamento...');
+  google.script.run
+    .withSuccessHandler(function(data){ renderWorker(data); setS('Connesso al foglio Google'); })
+    .withFailureHandler(function(err){ toast('Errore: '+err.message); })
+    .getWorkerWeek(id,workerMonday);
+}
+function workerPrev(){ workerMonday=addDays(workerMonday,-7); loadWorker(); }
+function workerNext(){ workerMonday=addDays(workerMonday,7); loadWorker(); }
+function renderWorker(data){
+  document.getElementById('w-label').textContent=fmtRange(data.monday);
+  var v=document.getElementById('worker-view');
+  if(!data.dipendente){ v.innerHTML=''; return; }
+  var d=data.dipendente;
+  var lav=0; data.giorni.forEach(function(g){ if(g.cantieri.length) lav++; });
+  var html='<div class="worker-hdr"><div class="worker-av">'+ini(d.nome)+'</div>'+
+    '<div><div style="font-size:17px;font-weight:600">'+esc(d.nome)+'</div>'+
+    '<div style="font-size:13px;color:#aaa;margin-top:2px">'+(d.ruolo||'')+(d.telefono?' - '+d.telefono:'')+'</div>'+
+    '<div style="font-size:12px;color:#888;margin-top:4px">'+fmtRange(data.monday)+' - '+lav+' giorni lavorativi</div></div></div>';
+  data.giorni.forEach(function(g,i){
+    var dt=new Date(g.date); var isWe=i>=5; var isDom=i===6;
+    html+='<div class="day-card"><div class="day-head" style="'+(isWe?'background:#fafaf9':'')+'">'+
+      '<div class="wd" style="'+(isWe?'color:#aaa':'')+'">'+GIORNI[i]+'</div>'+
+      '<div class="dt">'+dt.toLocaleDateString('it-IT',{day:'numeric',month:'long'})+'</div></div><div class="day-body">';
+    if(!g.cantieri.length){ html+='<div class="day-off">'+(isDom?'Domenica - riposo':(isWe?'Sabato - riposo':'Nessun cantiere assegnato'))+'</div>'; }
+    else {
+      g.cantieri.forEach(function(c2){
+        html+='<div class="site-row"><div class="dot" style="background:'+siteColor(c2.cantiereId)+'"></div>'+
+          '<div><div class="sname">'+esc(c2.nomeCantiere)+'</div><div class="stags">'+
+          (c2.attivita?'<span class="tag tag-a">'+esc(c2.attivita)+'</span>':'')+
+          (c2.commessa?'<span class="tag tag-c">'+esc(c2.commessa)+'</span>':'')+
+          (c2.mezzo?'<span class="tag tag-m">'+esc(c2.mezzo)+'</span>':'')+
+          '</div></div></div>';
+      });
+    }
+    html+='</div></div>';
+  });
+  v.innerHTML=html;
+}
+
+boot();
+</script>
 </body>
 </html>
