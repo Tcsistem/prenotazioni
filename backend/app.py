@@ -254,11 +254,11 @@ def list_prenotazioni():
 
         cur.execute("""
             SELECT id, cliente_nome, cliente_cognome, cliente_telefono,
-                   tipo_analisi, data_prenotazione, ora_prenotazione, stato
+                   tipo_analisi, data_prenotazione, orario_prenotazione, stato
             FROM prenotazioni
             WHERE data_prenotazione = CURRENT_DATE
             AND stato = 'CONFERMATA'
-            ORDER BY ora_prenotazione ASC
+            ORDER BY orario_prenotazione ASC
         """)
 
         prenotazioni = cur.fetchall()
@@ -288,7 +288,7 @@ def create_prenotazione():
         cur.execute("""
             INSERT INTO prenotazioni
             (cliente_nome, cliente_cognome, cliente_telefono, cliente_email,
-             tipo_analisi, data_prenotazione, ora_prenotazione, stato)
+             tipo_analisi, data_prenotazione, orario_prenotazione, stato)
             VALUES (%s, %s, %s, %s, %s, %s, %s, 'CONFERMATA')
             RETURNING id
         """, (
