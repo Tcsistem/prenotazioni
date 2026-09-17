@@ -1,0 +1,53 @@
+            <!-- SEZIONE: GESTIONE DOTTORI -->
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>👨‍⚕️ Gestione Dottori/Specialisti</h2>
+                    <button id="add-dottore-btn" class="btn btn-primary">➕ Aggiungi Dottore</button>
+                </div>
+
+                <div id="dottori-list" class="dottori-list">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <!-- MODAL: Nuovo Dottore -->
+            <div id="modal-nuovo-dottore" class="modal">
+                <div class="modal-content">
+                    <span class="modal-close">&times;</span>
+                    <h3>➕ Aggiungi Nuovo Dottore</h3>
+                    <form id="form-nuovo-dottore">
+                        <div class="form-group">
+                            <label for="dottore-nome">Nome:</label>
+                            <input type="text" id="dottore-nome" name="nome" placeholder="Es: Mario" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dottore-cognome">Cognome:</label>
+                            <input type="text" id="dottore-cognome" name="cognome" placeholder="Es: Rossi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="dottore-specializzazione">Specializzazione:</label>
+                            <select id="dottore-specializzazione" name="specializzazione" required>
+                                <option value="">-- Seleziona --</option>
+                                <option value="Ematologia">Ematologia</option>
+                                <option value="Biochmica">Biochmica</option>
+                                <option value="Sierologia">Sierologia</option>
+                                <option value="Immunologia">Immunologia</option>
+                                <option value="Coagulazione">Coagulazione</option>
+                                <option value="Altro">Altro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="dottore-email">Email (opzionale):</label>
+                            <input type="email" id="dottore-email" name="email" placeholder="Es: mario.rossi@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="dottore-telefono">Telefono (opzionale):</label>
+                            <input type="tel" id="dottore-telefono" name="telefono" placeholder="Es: +39 333 1234567">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">✓ Salva Dottore</button>
+                            <button type="button" class="btn btn-secondary modal-close-btn">Annulla</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
