@@ -32,7 +32,6 @@ cors_config = {
     "supports_credentials": True
 }
 CORS(app, resources={r"/api/*": cors_config, r"/health": cors_config})
-from datetime import datetime, timedelta)
 
 # Database connection
 def get_db_connection():
@@ -465,6 +464,124 @@ def get_prenotazioni_mese():
         return jsonify({
             'success': True,
             'data': prenotazioni
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+# ==================== DOTTORI ENDPOINTS ====================
+
+@app.route('/api/dottori', methods=['GET'])
+def list_dottori():
+    """Lista di tutti i dottori/specialisti attivi"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT id, nome, cognome, specializzazione, email, telefono, attivo
+            FROM dottori
+            WHERE attivo = TRUE
+            ORDER BY cognome, nome ASC
+        """)
+
+        dottori = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': dottori,
+            'count': len(dottori)
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/dottori', methods=['POST'])
+def create_dottore():
+    """Crea un nuovo dottore/specialista"""
+    try:
+        data = request.json
+
+        # Validazione
+        required = ['nome', 'cognome', 'specializzazione']
+        if not all(k in data for k in required):
+            return jsonify({
+                'success': False,
+                'error': 'Campi obbligatori: nome, cognome, specializzazione'
+            }), 400
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Controlla se esiste già
+        cur.execute("""
+            SELECT id FROM dottori
+            WHERE nome = %s AND cognome = %s
+        """, (data['nome'], data['cognome']))
+
+        if cur.fetchone():
+            return jsonify({
+                'success': False,
+                'error': f"Dottore {data['nome']} {data['cognome']} esiste già"
+            }), 400
+
+        # Insert dottore
+        cur.execute("""
+            INSERT INTO dottori
+            (nome, cognome, specializzazione, email, telefono, attivo)
+            VALUES (%s, %s, %s, %s, %s, TRUE)
+            RETURNING id, nome, cognome, specializzazione, email, telefono, attivo
+        """, (
+            data['nome'],
+            data['cognome'],
+            data['specializzazione'],
+            data.get('email', ''),
+            data.get('telefono', '')
+        ))
+
+        dottore = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'data': dottore,
+            'message': f"Dottore {data['nome']} {data['cognome']} creato con successo"
+        }), 201
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/dottori/<int:dottore_id>', methods=['DELETE'])
+def delete_dottore(dottore_id):
+    """Elimina un dottore (soft delete: attivo = FALSE)"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        cur.execute("""
+            UPDATE dottori SET attivo = FALSE WHERE id = %s
+        """, (dottore_id,))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Dottore disattivato'
         }), 200
 
     except Exception as e:
