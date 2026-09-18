@@ -13,6 +13,7 @@ from psycopg2.extras import RealDictCursor
 import gspread
 from google.oauth2.service_account import Credentials
 import json
+from urllib.parse import urlparse
 
 # Load environment variables
 load_dotenv()
@@ -35,13 +36,27 @@ CORS(app, resources={r"/api/*": cors_config, r"/health": cors_config})
 
 # Database connection
 def get_db_connection():
-    conn = psycopg2.connect(
-        host=os.getenv('DB_HOST'),
-        database=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        port=os.getenv('DB_PORT', 5432)
-    )
+    db_url = os.getenv('DATABASE_URL')
+
+    if db_url:
+        # Parse DATABASE_URL (postgres://user:password@host:port/database)
+        parsed = urlparse(db_url)
+        conn = psycopg2.connect(
+            host=parsed.hostname,
+            database=parsed.path.lstrip('/'),
+            user=parsed.username,
+            password=parsed.password,
+            port=parsed.port or 5432
+        )
+    else:
+        # Fallback per sviluppo locale
+        conn = psycopg2.connect(
+            host=os.getenv('DB_HOST'),
+            database=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            port=os.getenv('DB_PORT', 5432)
+        )
     return conn
 
 # Google Sheets setup
