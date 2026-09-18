@@ -594,59 +594,99 @@ def delete_dottore(dottore_id):
 
 @app.route('/webhook/wildix', methods=['POST'])
 def wildix_webhook():
-    """Ricevi dati dal voicebot Wildix"""
+    """
+    Ricevi dati dal voicebot Wildix
+
+    Body atteso:
+    {
+        "nome": "Mario",
+        "cognome": "Rossi",
+        "telefono": "+39 333 1234567",
+        "motivo_della_chiamata": "Ematologia - controllo annuale"
+    }
+    """
     try:
         data = request.json
 
-        # Tipo di evento
-        event_type = data.get('event_type')
+        # Validazione
+        if not data.get('nome') or not data.get('cognome') or not data.get('telefono'):
+            return jsonify({
+                'success': False,
+                'error': 'Campi obbligatori: nome, cognome, telefono'
+            }), 400
 
-        if event_type == 'call_ended':
-            # Chiamata terminata
-            print(f"[WILDIX] Call ended: {data}")
+        # Dati da Wildix
+        callback_data = {
+            'nome': data.get('nome'),
+            'cognome': data.get('cognome'),
+            'telefono': data.get('telefono'),
+            'motivo': data.get('motivo_della_chiamata', 'Callback da voicebot')
+        }
 
-        elif event_type == 'callback_requested':
-            # Cliente ha richiesto callback
-            callback_data = {
-                'nome': data.get('cliente_nome'),
-                'cognome': data.get('cliente_cognome'),
-                'telefono': data.get('cliente_telefono'),
-                'tipo_analisi': data.get('tipo_analisi'),
-                'orario_preferito': data.get('orario_preferito', 'qualsiasi')
-            }
-            # Crea callback via API interna
-            create_callback_internal(callback_data)
+        # Crea callback
+        callback_id = create_callback_internal(callback_data)
 
-        return jsonify({'success': True}), 200
+        return jsonify({
+            'success': True,
+            'callback_id': callback_id,
+            'message': 'Callback ricevuto e salvato'
+        }), 201
 
     except Exception as e:
-        print(f"Webhook error: {e}")
+        print(f"[WILDIX ERROR] {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 def create_callback_internal(data):
-    """Helper interno per creare callback"""
+    """Helper interno per creare callback da Wildix"""
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
 
+        # Insert callback
         cur.execute("""
             INSERT INTO callback_richieste
             (cliente_nome, cliente_cognome, cliente_telefono, tipo_analisi,
              orario_preferito, stato, data_ora_richiesta)
-            VALUES (%s, %s, %s, %s, %s, 'IN_SOSPESO', NOW())
+            VALUES (%s, %s, %s, %s, 'qualsiasi', 'IN_SOSPESO', NOW())
+            RETURNING id
         """, (
             data['nome'],
             data['cognome'],
             data['telefono'],
-            data['tipo_analisi'],
-            data.get('orario_preferito', 'qualsiasi')
+            data['motivo']  # Salva il motivo nel campo tipo_analisi
         ))
 
+        callback_id = cur.fetchone()['id']
         conn.commit()
+
+        # Aggiungi a Google Sheets (se disponibile)
+        try:
+            gc = get_sheets_client()
+            sheet = gc.open_by_key(os.getenv('GOOGLE_SHEETS_ID')).sheet1
+
+            sheet.append_row([
+                datetime.now().strftime('%Y-%m-%d %H:%M'),
+                data['nome'],
+                data['cognome'],
+                data['telefono'],
+                data['motivo'],
+                'qualsiasi',
+                '',  # operatrice_assegnata
+                'IN_SOSPESO',
+                'Da voicebot Wildix'
+            ])
+        except Exception as e:
+            print(f"[SHEETS ERROR] {e}")
+
         cur.close()
         conn.close()
+
+        print(f"[WILDIX] ✅ Callback creato: ID={callback_id}, Cliente={data['nome']} {data['cognome']}")
+        return callback_id
+
     except Exception as e:
-        print(f"Error creating callback: {e}")
+        print(f"[DB ERROR] {e}")
+        raise
 
 # ==================== HEALTH CHECK ====================
 
