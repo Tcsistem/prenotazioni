@@ -8,30 +8,18 @@ document.addEventListener('DOMContentLoaded', function() {
     loadCallbacks();
     loadPrenotazioni();
     loadCompletati();
-    loadDottori();  // ← AGGIUNGI QUESTA RIGA
     initCalendario();  // ← AGGIUNGI QUESTA RIGA
     updateTime();
+
+    // Auto-refresh callback ogni 5 secondi (per Wildix webhook)
+    setInterval(loadCallbacks, 5000);
     setInterval(updateTime, 1000);
-        // Event listeners per i modal
+
+    // Event listeners per i modal
     setupModalListeners();
 });
 
 function setupModalListeners() {
-    
-    const modalNuovoDottore = document.getElementById('modal-nuovo-dottore');
-    const addDottoreBtn = document.getElementById('add-dottore-btn');
-    const formNuovoDottore = document.getElementById('form-nuovo-dottore');
-
-        if (addDottoreBtn) {
-            addDottoreBtn.addEventListener('click', () => {
-        if (modalNuovoDottore) modalNuovoDottore.style.display = 'block';
-                });
-        }
-
-if (formNuovoDottore) {
-    formNuovoDottore.addEventListener('submit', submitNuovoDottore);
-}
-    
     const modalCallback = document.getElementById('modal-callback');
     const modalTest = document.getElementById('modal-test-callback');
     const modalConvert = document.getElementById('modal-convert-callback');
@@ -87,14 +75,14 @@ async function loadCallbacks() {
         if (data.data && data.data.length > 0) {
             callbacksList.innerHTML = data.data.map(callback => `
                 <div class="callback-item">
-                    <strong>${callback.nome} ${callback.cognome}</strong><br>
-                    Telefono: <a href="tel:${callback.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.telefono}</a><br>
+                    <strong>${callback.cliente_nome} ${callback.cliente_cognome}</strong><br>
+                    Telefono: <a href="tel:${callback.cliente_telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.cliente_telefono}</a><br>
                     Analisi: ${callback.tipo_analisi}<br>
                     Orario preferito: ${callback.orario_preferito}<br>
                     <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
                     <div style="margin-top: 10px;">
-                        <button class="btn btn-success" onclick="openConvertModal(${callback.id}, '${callback.nome}', '${callback.cognome}')">↔️ Converti a Prenotazione</button>
-                        <button class="btn btn-primary" onclick="openCompleteModal(${callback.id}, '${callback.nome}', '${callback.cognome}', '${callback.telefono}')">✓ Completato</button>
+                        <button class="btn btn-success" onclick="openConvertModal(${callback.id}, '${callback.cliente_nome}', '${callback.cliente_cognome}')">↔️ Converti a Prenotazione</button>
+                        <button class="btn btn-primary" onclick="openCompleteModal(${callback.id}, '${callback.cliente_nome}', '${callback.cliente_cognome}', '${callback.cliente_telefono}')">✓ Completato</button>
                         <button class="btn btn-danger" onclick="deleteCallback(${callback.id})">🗑️ Elimina</button>
                     </div>
                 </div>
@@ -464,108 +452,4 @@ function nextMese() {
     currentDate.setMonth(currentDate.getMonth() + 1);
     renderCalendario();
     loadCalendarioData();
-}
-
-// ====== DOTTORI ======
-
-async function loadDottori() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/dottori`);
-        const data = await response.json();
-
-        const dottoriList = document.getElementById('dottori-list');
-        if (!dottoriList) {
-            console.error('❌ Elemento dottori-list non trovato');
-            return;
-        }
-
-        if (data.success && data.data && data.data.length > 0) {
-            dottoriList.innerHTML = data.data.map(dottore => `
-                <div class="callback-item">
-                    <strong>${dottore.nome} ${dottore.cognome}</strong><br>
-                    Specializzazione: ${dottore.specializzazione}<br>
-                    ${dottore.email ? `Email: <a href="mailto:${dottore.email}" style="text-decoration: none; color: #0066cc;">${dottore.email}</a><br>` : ''}
-                    ${dottore.telefono ? `Telefono: <a href="tel:${dottore.telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${dottore.telefono}</a><br>` : ''}
-                    <small>ID: ${dottore.id}</small>
-                    <div style="margin-top: 10px;">
-                        <button class="btn btn-danger" onclick="deleteDottore(${dottore.id}, '${dottore.nome}', '${dottore.cognome}')">🗑️ Rimuovi</button>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            dottoriList.innerHTML = '<p>Nessun dottore registrato. Aggiungine uno!</p>';
-        }
-    } catch (error) {
-        console.error('[ERROR] ❌ Errore caricamento dottori:', error.message);
-        const dottoriList = document.getElementById('dottori-list');
-        if (dottoriList) {
-            dottoriList.innerHTML = '<p style="color: red;">❌ Errore nel caricamento della lista dottori</p>';
-        }
-    }
-}
-
-async function submitNuovoDottore(e) {
-    e.preventDefault();
-
-    const nome = document.getElementById('dottore-nome').value;
-    const cognome = document.getElementById('dottore-cognome').value;
-    const specializzazione = document.getElementById('dottore-specializzazione').value;
-    const email = document.getElementById('dottore-email').value;
-    const telefono = document.getElementById('dottore-telefono').value;
-
-    if (!nome || !cognome || !specializzazione) {
-        alert('❌ Compila tutti i campi obbligatori');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/dottori`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                nome,
-                cognome,
-                specializzazione,
-                email: email || null,
-                telefono: telefono || null
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            console.log('[SUCCESS] ✅ Dottore creato');
-            document.getElementById('modal-nuovo-dottore').style.display = 'none';
-            document.getElementById('form-nuovo-dottore').reset();
-            alert('✅ Dottore aggiunto con successo!');
-            loadDottori();  // Ricarica lista
-        } else {
-            alert('❌ Errore: ' + (data.error || 'Errore sconosciuto'));
-        }
-    } catch (error) {
-        console.error('[ERROR] ❌ Errore:', error.message);
-        alert('❌ Errore nel salvare il dottore');
-    }
-}
-
-async function deleteDottore(dottoreId, nome, cognome) {
-    if (!confirm(`Sei sicuro di voler rimuovere ${nome} ${cognome}?`)) return;
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/dottori/${dottoreId}`, {
-            method: 'DELETE'
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            console.log('[SUCCESS] ✅ Dottore rimosso');
-            alert('✅ Dottore rimosso');
-            loadDottori();
-        } else {
-            alert('❌ Errore: ' + (data.error || 'Errore sconosciuto'));
-        }
-    } catch (error) {
-        console.error('[ERROR] ❌ Errore:', error.message);
-        alert('❌ Errore nel rimuovere il dottore');
-    }
 }
