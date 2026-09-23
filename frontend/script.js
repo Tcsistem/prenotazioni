@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSsB2W3DnKi3sxC4U6oMV7XOOs_OuWkGaU0Yy_eRR9OdcI8EYvAe1C0JG1IBYI4BUjlw/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzDUtS6tHiv9fcX46uz8Ezjf6ab3VBRSbCPkYTPzWNmVzBn-xIOZ3MOpVMA4hE073gODg/exec';
 
 function initPage() {
   loadCallbacks();
