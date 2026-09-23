@@ -1,8 +1,4 @@
-const SPREADSHEET_ID = '1Ao2aCVxsjMp70ROa8MyAVVTkEnSGIwuDnxFQ2XBCBrA';
-
-// Carica Google Charts prima
-google.charts.load('current', {'packages':['corechart']});
-google.charts.setOnLoadCallback(initPage);
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSsB2W3DnKi3sxC4U6oMV7XOOs_OuWkGaU0Yy_eRR9OdcI8EYvAe1C0JG1IBYI4BUjlw/exec';
 
 function initPage() {
   loadCallbacks();
@@ -10,35 +6,13 @@ function initPage() {
 }
 
 function loadCallbacks() {
-  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/query?headers=1&gid=0`;
-  const query = new google.visualization.Query(url);
-  
-  query.setQuery('select A,B,C,D,E,F order by A desc');
-  query.send(handleQueryResponse);
-}
-
-function handleQueryResponse(response) {
-  if (response.isError()) {
-    console.error('❌ Errore:', response.getMessage());
-    document.getElementById('callbacks-list').innerHTML = '<p>Errore nel caricamento</p>';
-    return;
-  }
-  
-  const data = response.getDataTable();
-  const callbacks = [];
-  
-  for (let i = 0; i < data.getNumberOfRows(); i++) {
-    callbacks.push({
-      data_ora: data.getValue(i, 0),
-      nome: data.getValue(i, 1),
-      cognome: data.getValue(i, 2),
-      telefono: data.getValue(i, 3),
-      analisi: data.getValue(i, 4),
-      stato: data.getValue(i, 5)
+  fetch(APPS_SCRIPT_URL)
+    .then(response => response.json())
+    .then(callbacks => displayCallbacks(callbacks))
+    .catch(error => {
+      console.error('❌ Errore:', error);
+      document.getElementById('callbacks-list').innerHTML = '<p>Errore nel caricamento</p>';
     });
-  }
-  
-  displayCallbacks(callbacks);
 }
 
 function displayCallbacks(callbacks) {
