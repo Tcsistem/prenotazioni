@@ -61,63 +61,39 @@ function setupModalListeners() {
     });
 }
 
-const SPREADSHEET_ID = '1Ao2aCVxsjMp70ROa8MyAVVTkEnSGIwuDnxFQ2XBCBrA';
-
 async function loadCallbacks() {
-  const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/query?headers=1&gid=0`;
-  const query = new google.visualization.Query(url);
-  
-  query.setQuery('select A,B,C,D,E,F order by A desc limit 100');
-  query.send(handleQueryResponse);
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/callbacks`);
+        const data = await response.json();
+        
+        const callbacksList = document.getElementById('callbacks-list');
+        if (!callbacksList) {
+            console.error('❌ Elemento callbacks-list non trovato');
+            return;
+        }
+        
+        if (data.data && data.data.length > 0) {
+            callbacksList.innerHTML = data.data.map(callback => `
+                <div class="callback-item">
+                    <strong>${callback.cliente_nome} ${callback.cliente_cognome}</strong><br>
+                    Telefono: <a href="tel:${callback.cliente_telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.cliente_telefono}</a><br>
+                    Analisi: ${callback.tipo_analisi}<br>
+                    Orario preferito: ${callback.orario_preferito}<br>
+                    <small>Richiesta: ${new Date(callback.data_ora_richiesta).toLocaleString('it-IT')}</small>
+                    <div style="margin-top: 10px;">
+                        <button class="btn btn-success" onclick="openConvertModal(${callback.id}, '${callback.cliente_nome}', '${callback.cliente_cognome}')">↔️ Converti a Prenotazione</button>
+                        <button class="btn btn-primary" onclick="openCompleteModal(${callback.id}, '${callback.cliente_nome}', '${callback.cliente_cognome}', '${callback.cliente_telefono}')">✓ Completato</button>
+                        <button class="btn btn-danger" onclick="deleteCallback(${callback.id})">🗑️ Elimina</button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            callbacksList.innerHTML = '<p>Nessun callback in sospeso</p>';
+        }
+    } catch (error) {
+        console.error('[ERROR] ❌ Errore:', error.message);
+    }
 }
-
-function handleQueryResponse(response) {
-  if (response.isError()) {
-    console.error('❌ Errore Sheet:', response.getMessage());
-    document.getElementById('callbacks-list').innerHTML = '<p>Errore caricamento dati</p>';
-    return;
-  }
-  
-  const data = response.getDataTable();
-  const callbacks = [];
-  
-  for (let i = 0; i < data.getNumberOfRows(); i++) {
-    callbacks.push({
-      data_ora_richiesta: data.getValue(i, 0),
-      cliente_nome: data.getValue(i, 1),
-      cliente_cognome: data.getValue(i, 2),
-      cliente_telefono: data.getValue(i, 3),
-      tipo_analisi: data.getValue(i, 4),
-      stato: data.getValue(i, 5)
-    });
-  }
-  
-  displayCallbacks(callbacks);
-}
-
-function displayCallbacks(callbacks) {
-  const container = document.getElementById('callbacks-list');
-  
-  if (!callbacks || callbacks.length === 0) {
-    container.innerHTML = '<p>Nessun callback in sospeso</p>';
-    return;
-  }
-  
-  container.innerHTML = callbacks.map(callback => `
-    <div class="callback-item">
-      <strong>${callback.cliente_nome} ${callback.cliente_cognome}</strong><br>
-      Telefono: <a href="tel:${callback.cliente_telefono}" style="text-decoration: none; color: #0066cc; font-weight: bold;">📞 ${callback.cliente_telefono}</a><br>
-      Analisi: ${callback.tipo_analisi}<br>
-      <small>Richiesta: ${callback.data_ora_richiesta || 'N/A'}</small>
-    </div>
-  `).join('');
-}
-
-// Carica i dati al primo caricamento e ogni 5 secondi
-document.addEventListener('DOMContentLoaded', () => {
-  loadCallbacks();
-  setInterval(loadCallbacks, 5000);
-});
 
 async function loadPrenotazioni() {
     try {
