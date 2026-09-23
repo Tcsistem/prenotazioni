@@ -6,12 +6,20 @@ function initPage() {
 }
 
 function loadCallbacks() {
-  fetch(APPS_SCRIPT_URL)
-    .then(response => response.json())
+  fetch(APPS_SCRIPT_URL, {
+    method: 'GET',
+    redirect: 'follow'
+  })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Errore HTTP: ' + response.status);
+      }
+      return response.json();
+    })
     .then(callbacks => displayCallbacks(callbacks))
     .catch(error => {
-      console.error('❌ Errore:', error);
-      document.getElementById('callbacks-list').innerHTML = '<p>Errore nel caricamento</p>';
+      console.error('❌ Errore fetch:', error);
+      document.getElementById('callbacks-list').innerHTML = '<p>Errore: ' + error.message + '</p>';
     });
 }
 
