@@ -1,5 +1,14 @@
 const SPREADSHEET_ID = '1Ao2aCVxsjMp70ROa8MyAVVTkEnSGIwuDnxFQ2XBCBrA';
 
+// Carica Google Charts prima
+google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(initPage);
+
+function initPage() {
+  loadCallbacks();
+  setInterval(loadCallbacks, 5000);
+}
+
 function loadCallbacks() {
   const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/query?headers=1&gid=0`;
   const query = new google.visualization.Query(url);
@@ -50,9 +59,3 @@ function displayCallbacks(callbacks) {
     </div>
   `).join('');
 }
-
-// Carica al primo avvio e poi ogni 5 secondi
-document.addEventListener('DOMContentLoaded', () => {
-  loadCallbacks();
-  setInterval(loadCallbacks, 5000);
-});
