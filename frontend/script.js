@@ -41,3 +41,5 @@ function displayCallbacks(callbacks) {
     </div>
   `).join('');
 }
+
+document.addEventListener('DOMContentLoaded', initPage);
