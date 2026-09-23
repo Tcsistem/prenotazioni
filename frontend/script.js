@@ -52,18 +52,13 @@ function deleteCallback(row) {
     return;
   }
   
-  const formData = new URLSearchParams();
-  formData.append('action', 'delete');
-  formData.append('row', row);
+  const url = `${APPS_SCRIPT_URL}?action=delete&row=${row}`;
   
-  fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    body: formData
-  })
+  fetch(url)
     .then(response => response.json())
     .then(result => {
       if (result.success) {
-        loadCallbacks(); // Ricarica la lista
+        loadCallbacks();
       } else {
         alert('Errore: ' + (result.message || result.error));
       }
